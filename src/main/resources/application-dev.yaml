@@ -1,0 +1,39 @@
+#application-dev.yaml
+
+  # ====== Master (Registry) DB ======
+  datasource:
+    url: jdbc:postgresql://localhost:5432/zw_schools_registry
+    username: postgres
+    password: 123456
+    driver-class-name: org.postgresql.Driver
+
+    # HikariCP tuning
+    hikari:
+      pool-name: MainPool
+      maximum-pool-size: 50
+      minimum-idle: 10
+      connection-timeout: 30000       # milliseconds
+      idle-timeout: 600000            # milliseconds
+      max-lifetime: 1800000           # milliseconds
+      leak-detection-threshold: 2000  # milliseconds
+      initialization-fail-timeout: 1  # fail fast if pool can't be initialized
+
+  # Flyway for registry DB (core migrations)
+  flyway:
+    enabled: true
+    locations: classpath:db/migration/core
+    baseline-on-migrate: true
+
+tenant:
+  migration:
+    locations:
+      common: classpath:db/migration/tenant/common
+      primary: classpath:db/migration/tenant/primary
+      secondary: classpath:db/migration/tenant/secondary
+
+multitenancy:
+  header-name: X-Tenant-ID
+  default-tenant: public
+  auto-create-schema: true
+  create-tenant-roles: true         # fallback schema if none provided
+
