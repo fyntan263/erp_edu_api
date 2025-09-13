@@ -1,6 +1,7 @@
 package com.innoverse.erp_edu_api.provisioning.infrastructure.jdbc;
 
 import com.innoverse.erp_edu_api.provisioning.domain.DbProvision;
+import com.innoverse.erp_edu_api.provisioning.services.DbProvisioningRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
@@ -19,37 +20,6 @@ public class DbProvisionAdapter implements DbProvisioningRepository {
     private final DbProvisionJdbcRepository jpaRepository;
 
 
-//    @Transactional
-//    public DbProvision createProvision(DbProvisioningRequest request, String assignedBy) {
-//        // Check if schema name already exists
-//        if (jpaRepository.existsByDbSchemaName(request.schemaName())) {
-//            throw new IllegalArgumentException("Database schema '" + request.schemaName() + "' already exists");
-//        }
-//
-//        DbProvision provision = DbProvision.createNew(request.schemaName(), request.level().name());
-//        provision.setAssignedBy(assignedBy);
-//
-//        // Convert enum to lowercase string for database compatibility
-//        String dbStatus = provision.getProvisionStatus();
-//
-//        // Use custom insert
-//        jpaRepository.customInsert(
-//                provision.getProvisionId(),
-//                provision.getDbSchemaName(),
-//                dbStatus,
-//                provision.getAssignedSchoolId(),
-//                provision.getAssignedEducationLevel(),
-//                provision.getAssignedBy(),
-//                provision.getAssignedDate(),
-//                provision.getErrorMessage(),
-//                provision.getAttempts(),
-//                provision.getCreatedAt(),
-//                provision.getUpdatedAt()
-//        );
-//
-//        log.info("Created new database provision with ID: {}", provision.getProvisionId());
-//        return provision;
-//    }
     @Override
     @Transactional
     public Optional<DbProvision> update(DbProvision provision) {
@@ -65,26 +35,21 @@ public class DbProvisionAdapter implements DbProvisioningRepository {
     @Override
     @Transactional
     public DbProvision save(DbProvision provision) {
-        // Check if entity already exists by ID
         if (jpaRepository.existsById(provision.getProvisionId())) {
             throw new IllegalArgumentException("Provision with ID '" + provision.getProvisionId() + "' already exists");
         }
 
-        // Check if schema name already exists
         if (jpaRepository.existsByDbSchemaName(provision.getDbSchemaName())) {
             throw new IllegalArgumentException("Database schema '" + provision.getDbSchemaName() + "' already exists");
         }
 
-        // Update timestamps
         provision.setUpdatedAt(LocalDateTime.now());
         if (provision.getCreatedAt() == null) {
             provision.setCreatedAt(LocalDateTime.now());
         }
 
-        // Convert enum to lowercase string for database compatibility
         String dbStatus = provision.getProvisionStatus();
 
-        // Use custom insert
         jpaRepository.customInsert(
                 provision.getProvisionId(),
                 provision.getDbSchemaName(),
@@ -95,6 +60,7 @@ public class DbProvisionAdapter implements DbProvisioningRepository {
                 provision.getAssignedDate(),
                 provision.getErrorMessage(),
                 provision.getAttempts(),
+                provision.isAccessible(),
                 provision.getCreatedAt(),
                 provision.getUpdatedAt()
         );
@@ -171,19 +137,19 @@ public class DbProvisionAdapter implements DbProvisioningRepository {
         }
     }
 
-    // Additional helper methods for better performance
-    public List<DbProvision> findReadyForAssignment() {
-        return jpaRepository.findByProvisionStatus("provisioned");
-    }
-
-    public List<DbProvision> findPendingProvisions() {
-        return jpaRepository.findByProvisionStatus("pending");
-    }
-
-    public Optional<DbProvision> findFirstAvailableProvision() {
-        return jpaRepository.findByProvisionStatus("provisioned")
-                .stream()
-                .filter(provision -> provision.getAssignedSchoolId() == null)
-                .findFirst();
-    }
+//    // Additional helper methods for better performance
+//    public List<DbProvision> findReadyForAssignment() {
+//        return jpaRepository.findByProvisionStatus("provisioned");
+//    }
+//
+//    public List<DbProvision> findPendingProvisions() {
+//        return jpaRepository.findByProvisionStatus("pending");
+//    }
+//
+//    public Optional<DbProvision> findFirstAvailableProvision() {
+//        return jpaRepository.findByProvisionStatus("provisioned")
+//                .stream()
+//                .filter(provision -> provision.getAssignedSchoolId() == null)
+//                .findFirst();
+//    }
 }

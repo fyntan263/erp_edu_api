@@ -1,7 +1,7 @@
 package com.innoverse.erp_edu_api.schools.jdbc;
 
-import com.innoverse.erp_edu_api.schools.School;
-import com.innoverse.erp_edu_api.schools.SchoolRepository;
+import com.innoverse.erp_edu_api.schools.domain.School;
+import com.innoverse.erp_edu_api.schools.services.SchoolRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
@@ -19,36 +19,29 @@ public class SchoolPersistenceAdapter implements SchoolRepository {
 
     @Override
     public School save(School school) {
-        // Check if entity already exists by ID
-        if (school.getSchoolId() != null && jpaRepository.existsById(school.getSchoolId())) {
-            throw new IllegalArgumentException("School with ID '" + school.getSchoolId() + "' already exists");
-        }
+//        if (school.getSchoolId() != null && jpaRepository.existsById(school.getSchoolId())) {
+//            throw new IllegalArgumentException("School with ID '" + school.getSchoolId() + "' already exists");
+//        }
+//
+//        if (school.getSchoolId() == null && school.getSchoolEmail() != null &&
+//                jpaRepository.existsBySchoolEmail(school.getSchoolEmail())) {
+//            throw new IllegalArgumentException("School with email '" + school.getSchoolEmail() + "' already exists");
+//        }
+//
+//        // Check if MoPSE number already exists (for new schools)
+//        if (school.getSchoolId() == null && school.getMopseNo() != null &&
+//                jpaRepository.existsByMopseNo(school.getMopseNo())) {
+//            throw new IllegalArgumentException("School with MoPSE number '" + school.getMopseNo() + "' already exists");
+//        }
 
-        // Check if email already exists (for new schools)
-        if (school.getSchoolId() == null && school.getSchoolEmail() != null &&
-                jpaRepository.existsBySchoolEmail(school.getSchoolEmail())) {
-            throw new IllegalArgumentException("School with email '" + school.getSchoolEmail() + "' already exists");
-        }
-
-        // Check if MoPSE number already exists (for new schools)
-        if (school.getSchoolId() == null && school.getMopseNo() != null &&
-                jpaRepository.existsByMopseNo(school.getMopseNo())) {
-            throw new IllegalArgumentException("School with MoPSE number '" + school.getMopseNo() + "' already exists");
-        }
-
-        // Set timestamps
         LocalDateTime now = LocalDateTime.now();
         if (school.getCreatedAt() == null) {
             school.setCreatedAt(now);
         }
         school.setUpdatedAt(now);
-
-        // Generate UUID if not provided
         if (school.getSchoolId() == null) {
             school.setSchoolId(UUID.randomUUID());
         }
-
-        // Use custom insert
         jpaRepository.customInsert(
                 school.getSchoolId(),
                 school.getMopseNo(),

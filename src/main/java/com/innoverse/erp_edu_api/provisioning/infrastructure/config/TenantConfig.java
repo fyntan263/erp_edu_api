@@ -1,9 +1,10 @@
 package com.innoverse.erp_edu_api.provisioning.infrastructure.config;
 
+import com.innoverse.erp_edu_api.provisioning.services.DistributedTenantCache;
 import com.innoverse.erp_edu_api.provisioning.infrastructure.datasource.TenantAwareDataSource;
-import com.innoverse.erp_edu_api.provisioning.api.web.TenantFilter;
-import com.innoverse.erp_edu_api.provisioning.api.web.TenantHeaderResolver;
-import com.innoverse.erp_edu_api.provisioning.api.web.TenantResolver;
+import com.innoverse.erp_edu_api.provisioning.web.resolvers.TenantFilter;
+import com.innoverse.erp_edu_api.provisioning.web.resolvers.TenantHeaderResolver;
+import com.innoverse.erp_edu_api.provisioning.web.resolvers.TenantResolver;
 import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.context.annotation.Bean;
@@ -22,7 +23,6 @@ public class TenantConfig {
                 .type(HikariDataSource.class)
                 .build();
 
-        // Configure HikariCP settings
         targetDataSource.setPoolName("TenantAwarePool");
         targetDataSource.setMaximumPoolSize(50);
         targetDataSource.setMinimumIdle(10);
@@ -45,7 +45,7 @@ public class TenantConfig {
     }
 
     @Bean
-    public TenantResolver tenantResolver(TenantProperties tenantProperties, TenantSchemaCache tenantSchemaService) {
-        return new TenantHeaderResolver(tenantProperties, tenantSchemaService);
+    public TenantResolver tenantResolver(TenantProperties tenantProperties, DistributedTenantCache cache) {
+        return new TenantHeaderResolver(tenantProperties, cache);
     }
 }
