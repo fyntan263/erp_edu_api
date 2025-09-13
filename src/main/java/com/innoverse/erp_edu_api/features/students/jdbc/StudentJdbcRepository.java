@@ -1,7 +1,7 @@
 package com.innoverse.erp_edu_api.features.students.jdbc;
 
 
-import com.innoverse.erp_edu_api.features.students.Student;
+import com.innoverse.erp_edu_api.features.students.domain.Student;
 import org.springframework.data.jdbc.repository.query.Modifying;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.CrudRepository;

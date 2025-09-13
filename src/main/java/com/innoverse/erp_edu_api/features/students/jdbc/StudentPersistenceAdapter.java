@@ -1,8 +1,8 @@
 package com.innoverse.erp_edu_api.features.students.jdbc;
 
 
-import com.innoverse.erp_edu_api.features.students.Student;
-import com.innoverse.erp_edu_api.features.students.StudentRepository;
+import com.innoverse.erp_edu_api.features.students.domain.Student;
+import com.innoverse.erp_edu_api.features.students.services.StudentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
@@ -21,12 +21,10 @@ public class StudentPersistenceAdapter implements StudentRepository {
 
     @Override
     public Student save(Student student) {
-        // Check if entity already exists by ID
         if (student.getStudentId() != null && jpaRepository.existsById(student.getStudentId())) {
             throw new IllegalArgumentException("Student with ID '" + student.getStudentId() + "' already exists");
         }
 
-        // Check if student with same name and DOB already exists
         if (student.getStudentId() == null &&
                 existsByFirstNameAndLastNameAndDateOfBirth(
                         student.getFirstName(),
@@ -36,19 +34,16 @@ public class StudentPersistenceAdapter implements StudentRepository {
             throw new IllegalArgumentException("Student with same name and date of birth already exists");
         }
 
-        // Set timestamps
         LocalDateTime now = LocalDateTime.now();
         if (student.getCreatedAt() == null) {
             student.setCreatedAt(now);
         }
         student.setUpdatedAt(now);
 
-        // Generate UUID if not provided
         if (student.getStudentId() == null) {
             student.setStudentId(UUID.randomUUID());
         }
 
-        // Use custom insert
         jpaRepository.customInsert(
                 student.getStudentId(),
                 student.getFirstName(),

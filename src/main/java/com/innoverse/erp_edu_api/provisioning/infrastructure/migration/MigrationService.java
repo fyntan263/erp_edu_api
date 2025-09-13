@@ -1,6 +1,6 @@
 package com.innoverse.erp_edu_api.provisioning.infrastructure.migration;
 
-import com.innoverse.erp_edu_api.provisioning.domain.AcademicLevel;
+import com.innoverse.erp_edu_api.common.domain.AcademicLevel;
 
 public interface MigrationService {
     void migrate(String tenantId, AcademicLevel level);

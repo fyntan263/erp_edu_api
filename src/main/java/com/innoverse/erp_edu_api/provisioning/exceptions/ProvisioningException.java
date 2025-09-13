@@ -1,7 +1,7 @@
 package com.innoverse.erp_edu_api.provisioning.exceptions;
 
 
-import com.innoverse.erp_edu_api.common.DomainException;
+import com.innoverse.erp_edu_api.common.errors.DomainException;
 import org.slf4j.event.Level;
 import org.springframework.http.HttpStatus;
 

@@ -41,6 +41,7 @@ public interface DbProvisionJdbcRepository extends CrudRepository<DbProvision, U
             assigned_date,
             error_message,
             attempts,
+            is_accessible,
             created_at,
             updated_at
         ) VALUES (
@@ -53,6 +54,7 @@ public interface DbProvisionJdbcRepository extends CrudRepository<DbProvision, U
             :assignedDate,
             :errorMessage,
             :attempts,
+            :isAccessible,
             :createdAt,
             :updatedAt
         )
@@ -67,6 +69,7 @@ public interface DbProvisionJdbcRepository extends CrudRepository<DbProvision, U
             @Param("assignedDate") LocalDateTime assignedDate,
             @Param("errorMessage") String errorMessage,
             @Param("attempts") Integer attempts,
+            @Param("isAccessible")  boolean isAccessible,
             @Param("createdAt") LocalDateTime createdAt,
             @Param("updatedAt") LocalDateTime updatedAt
     );

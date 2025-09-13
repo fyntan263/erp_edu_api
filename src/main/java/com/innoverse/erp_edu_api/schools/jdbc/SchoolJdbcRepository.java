@@ -1,7 +1,7 @@
 package com.innoverse.erp_edu_api.schools.jdbc;
 
 
-import com.innoverse.erp_edu_api.schools.School;
+import com.innoverse.erp_edu_api.schools.domain.School;
 import org.springframework.data.jdbc.repository.query.Modifying;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.CrudRepository;

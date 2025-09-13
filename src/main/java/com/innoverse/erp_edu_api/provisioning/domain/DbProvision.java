@@ -15,81 +15,56 @@ import java.util.UUID;
 @AllArgsConstructor
 @Table("db_provisions")
 public class DbProvision {
-
-    public enum ProvisionStatus {
+    public enum Status {
         PENDING, PROVISIONED, FAILED
     }
 
-    @Id
-    @Column("provision_id")
-    private UUID provisionId;
+    @Id @Column("provision_id") private UUID provisionId;
+    @Column("db_schema_name") private String dbSchemaName;
+    @Column("provision_status") private String provisionStatus;
+    @Column("assigned_school_id") private UUID assignedSchoolId;
+    @Column("assigned_education_level") private String assignedEducationLevel;
+    @Column("is_accessible") private boolean isAccessible;
+    @CreatedBy @Column("assigned_by") private String assignedBy;
+    @Column("assigned_date") private LocalDateTime assignedDate;
+    @Column("error_message") private String errorMessage;
+    @Column("attempts") private Integer attempts = 0;
+    @CreatedDate @Column("created_at") private LocalDateTime createdAt;
+    @LastModifiedDate @Column("updated_at") private LocalDateTime updatedAt;
 
-    @Column("db_schema_name")
-    private String dbSchemaName;
 
-    @Column("provision_status")
-    private String provisionStatus;
-
-    @Column("assigned_school_id")
-    private UUID assignedSchoolId;
-
-    @Column("assigned_education_level")
-    private String assignedEducationLevel;
-
-    @CreatedBy
-    @Column("assigned_by")
-    private String assignedBy;
-
-    @Column("assigned_date")
-    private LocalDateTime assignedDate;
-
-    @Column("error_message")
-    private String errorMessage;
-
-    @Column("attempts")
-    private Integer attempts = 0;
-
-    @CreatedDate
-    @Column("created_at")
-    private LocalDateTime createdAt;
-
-    @LastModifiedDate
-    @Column("updated_at")
-    private LocalDateTime updatedAt;
-
-    // Factory method
     public static DbProvision createNew(String dbSchemaName, String educationLevel) {
         DbProvision provision = new DbProvision();
         provision.provisionId = UUID.randomUUID();
         provision.dbSchemaName = dbSchemaName;
-        provision.provisionStatus = ProvisionStatus.PENDING.name().toLowerCase();
+        provision.provisionStatus = Status.PENDING.name().toLowerCase();
         provision.assignedEducationLevel = educationLevel;
         provision.attempts = 0;
         return provision;
     }
 
     // Business methods
+    public void grantAccess() {
+        if (!isProvisioned() || !isAssigned()) {
+            throw new IllegalStateException("Cannot grant access to unprovisioned or unassigned schema");
+        }
+        this.isAccessible = true;
+    }
+
+    public void revokeAccess() {
+        this.isAccessible = false;
+    }
+
+    public boolean canAccessDatabase() {
+        return Boolean.TRUE.equals(isAccessible) && isProvisioned() && isAssigned();
+    }
+
     public void assignToSchool(UUID schoolId, String assignedBy) {
         validateAssignment();
         this.assignedSchoolId = schoolId;
         this.assignedBy = assignedBy;
         this.assignedDate = LocalDateTime.now();
-    }
-
-    public void markAsProvisioned() {
-        this.provisionStatus = ProvisionStatus.PROVISIONED.name().toLowerCase();
-        this.errorMessage = null;
-    }
-
-    public void markAsFailed(String errorMessage) {
-        this.provisionStatus = ProvisionStatus.FAILED.name().toLowerCase();
-        this.errorMessage = errorMessage;
-        this.attempts = (this.attempts != null ? this.attempts : 0) + 1;
-    }
-
-    public void resetForRetry() {
-        this.provisionStatus = ProvisionStatus.PENDING.name().toLowerCase();
-        this.errorMessage = null;
+        this.isAccessible = true; // Auto-grant access on assignment
     }
 
     public void unassignFromSchool() {
@@ -99,6 +74,23 @@ public class DbProvision {
         this.assignedSchoolId = null;
         this.assignedBy = null;
         this.assignedDate = null;
+        this.isAccessible = false; // Revoke access on unassignment
+    }
+
+    public void markAsProvisioned() {
+        this.provisionStatus = Status.PROVISIONED.name().toLowerCase();
+        this.errorMessage = null;
+    }
+
+    public void markAsFailed(String errorMessage) {
+        this.provisionStatus = Status.FAILED.name().toLowerCase();
+        this.errorMessage = errorMessage;
+        this.attempts = (this.attempts != null ? this.attempts : 0) + 1;
+    }
+
+    public void resetForRetry() {
+        this.provisionStatus = Status.PENDING.name().toLowerCase();
+        this.errorMessage = null;
     }
 
     // Validation methods
@@ -116,7 +108,7 @@ public class DbProvision {
     }
 
     public boolean canBeProcessed() {
-        return ProvisionStatus.PENDING.name().equalsIgnoreCase(this.provisionStatus) &&
+        return Status.PENDING.name().equalsIgnoreCase(this.provisionStatus) &&
                 this.assignedSchoolId == null;
     }
 
@@ -127,15 +119,15 @@ public class DbProvision {
 
     // Status check methods
     public boolean isProvisioned() {
-        return ProvisionStatus.PROVISIONED.name().equalsIgnoreCase(this.provisionStatus);
+        return Status.PROVISIONED.name().equalsIgnoreCase(this.provisionStatus);
     }
 
     public boolean isPending() {
-        return ProvisionStatus.PENDING.name().equalsIgnoreCase(this.provisionStatus);
+        return Status.PENDING.name().equalsIgnoreCase(this.provisionStatus);
     }
 
     public boolean isFailed() {
-        return ProvisionStatus.FAILED.name().equalsIgnoreCase(this.provisionStatus);
+        return Status.FAILED.name().equalsIgnoreCase(this.provisionStatus);
     }
 
     public boolean isAssigned() {

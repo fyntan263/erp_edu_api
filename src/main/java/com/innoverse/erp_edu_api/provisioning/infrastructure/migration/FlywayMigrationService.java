@@ -2,7 +2,7 @@ package com.innoverse.erp_edu_api.provisioning.infrastructure.migration;
 
 import com.innoverse.erp_edu_api.provisioning.infrastructure.config.TenantFlywayProperties;
 import com.innoverse.erp_edu_api.provisioning.infrastructure.datasource.TenantAwareDataSource;
-import com.innoverse.erp_edu_api.provisioning.domain.AcademicLevel;
+import com.innoverse.erp_edu_api.common.domain.AcademicLevel;
 import lombok.extern.slf4j.Slf4j;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.exception.FlywayValidateException;
@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Slf4j
@@ -19,7 +20,6 @@ public class FlywayMigrationService implements MigrationService {
     private final TenantFlywayProperties props;
 
     public FlywayMigrationService(DataSource dataSource, TenantFlywayProperties props) {
-        // Get the underlying data source (without tenant awareness)
         this.underlyingDataSource = dataSource instanceof TenantAwareDataSource ?
                 ((TenantAwareDataSource) dataSource).getTargetDataSource() : dataSource;
         this.props = props;
@@ -28,6 +28,7 @@ public class FlywayMigrationService implements MigrationService {
     @Override
     public void migrate(String tenantId, AcademicLevel level) {
         String[] locations = getMigrationLocations(level);
+        log.info("Migration locations: " + Arrays.toString(locations));
         migrate(tenantId, locations);
     }
 

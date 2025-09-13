@@ -1,7 +1,7 @@
 package com.innoverse.erp_edu_api.provisioning.infrastructure.datasource;
 
 import com.innoverse.erp_edu_api.provisioning.infrastructure.config.TenantProperties;
-import com.innoverse.erp_edu_api.provisioning.api.web.TenantContext;
+import com.innoverse.erp_edu_api.provisioning.web.resolvers.TenantContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.datasource.DelegatingDataSource;
 
@@ -44,24 +44,24 @@ public class TenantAwareDataSource extends DelegatingDataSource {
         }
     }
 
-    // SECURITY ENHANCEMENT: Secure public schema on initialization
-    public void securePublicSchema() throws SQLException {
-        try (Connection conn = super.getConnection();
-             Statement stmt = conn.createStatement()) {
-
-            // Revoke all privileges from public role on public schema
-            stmt.execute("REVOKE ALL ON SCHEMA public FROM PUBLIC");
-            stmt.execute("REVOKE ALL ON ALL TABLES IN SCHEMA public FROM PUBLIC");
-            stmt.execute("REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM PUBLIC");
-            stmt.execute("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA public FROM PUBLIC");
-            stmt.execute("REVOKE ALL ON ALL ROUTINES IN SCHEMA public FROM PUBLIC");
-
-            // Grant minimal privileges to public role
-            stmt.execute("GRANT USAGE ON SCHEMA public TO PUBLIC");
-
-            log.info("Public schema secured with minimal privileges");
-        }
-    }
+//    // SECURITY ENHANCEMENT: Secure public schema on initialization
+//    public void securePublicSchema() throws SQLException {
+//        try (Connection conn = super.getConnection();
+//             Statement stmt = conn.createStatement()) {
+//
+//            // Revoke all privileges from public role on public schema
+//            stmt.execute("REVOKE ALL ON SCHEMA public FROM PUBLIC");
+//            stmt.execute("REVOKE ALL ON ALL TABLES IN SCHEMA public FROM PUBLIC");
+//            stmt.execute("REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM PUBLIC");
+//            stmt.execute("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA public FROM PUBLIC");
+//            stmt.execute("REVOKE ALL ON ALL ROUTINES IN SCHEMA public FROM PUBLIC");
+//
+//            // Grant minimal privileges to public role
+//            stmt.execute("GRANT USAGE ON SCHEMA public TO PUBLIC");
+//
+//            log.info("Public schema secured with minimal privileges");
+//        }
+//    }
 
     // Schema management methods
     public boolean schemaExists(String schema) throws SQLException {
@@ -364,50 +364,50 @@ public class TenantAwareDataSource extends DelegatingDataSource {
 
     /**
      * Cleanup orphaned roles (roles without corresponding schemas)
-     */
-    public void cleanupOrphanedRoles() throws SQLException {
-        if (!tenantProperties.isCreateTenantRoles()) return;
-
-        try (Connection conn = super.getConnection();
-             Statement stmt = conn.createStatement();
-             var rs = stmt.executeQuery(
-                     "SELECT rolname FROM pg_roles WHERE rolname LIKE '%_user' AND rolname != 'postgres_user'")) {
-
-            while (rs.next()) {
-                String roleName = rs.getString("rolname");
-                String schemaName = roleName.replace("_user", "");
-
-                if (!schemaExists(schemaName)) {
-                    try {
-                        dropTenantRoleIfExists(schemaName);
-                    } catch (SQLException e) {
-                        log.warn("Could not drop orphaned role {}: {}", roleName, e.getMessage());
-                    }
-                }
-            }
-        }
-    }
-
-    public void forceDropSchema(String schema) throws SQLException {
-        if (schema.equals(tenantProperties.getDefaultTenant())) {
-            throw new SQLException("Cannot drop default tenant schema");
-        }
-
-        try (Connection conn = super.getConnection();
-             Statement stmt = conn.createStatement()) {
-
-            // Drop schema with cascade first
-            if (schemaExists(schema)) {
-                stmt.execute("DROP SCHEMA \"" + schema + "\" CASCADE");
-                log.info("Force-dropped schema: {}", schema);
-            }
-
-            // Then drop the tenant role with force
-            if (tenantProperties.isCreateTenantRoles()) {
-                forceDropTenantRole(schema);
-            }
-        }
-    }
+//     */
+//    public void cleanupOrphanedRoles() throws SQLException {
+//        if (!tenantProperties.isCreateTenantRoles()) return;
+//
+//        try (Connection conn = super.getConnection();
+//             Statement stmt = conn.createStatement();
+//             var rs = stmt.executeQuery(
+//                     "SELECT rolname FROM pg_roles WHERE rolname LIKE '%_user' AND rolname != 'postgres_user'")) {
+//
+//            while (rs.next()) {
+//                String roleName = rs.getString("rolname");
+//                String schemaName = roleName.replace("_user", "");
+//
+//                if (!schemaExists(schemaName)) {
+//                    try {
+//                        dropTenantRoleIfExists(schemaName);
+//                    } catch (SQLException e) {
+//                        log.warn("Could not drop orphaned role {}: {}", roleName, e.getMessage());
+//                    }
+//                }
+//            }
+//        }
+//    }
+//
+//    public void forceDropSchema(String schema) throws SQLException {
+//        if (schema.equals(tenantProperties.getDefaultTenant())) {
+//            throw new SQLException("Cannot drop default tenant schema");
+//        }
+//
+//        try (Connection conn = super.getConnection();
+//             Statement stmt = conn.createStatement()) {
+//
+//            // Drop schema with cascade first
+//            if (schemaExists(schema)) {
+//                stmt.execute("DROP SCHEMA \"" + schema + "\" CASCADE");
+//                log.info("Force-dropped schema: {}", schema);
+//            }
+//
+//            // Then drop the tenant role with force
+//            if (tenantProperties.isCreateTenantRoles()) {
+//                forceDropTenantRole(schema);
+//            }
+//        }
+//    }
 
     private void forceDropTenantRole(String schema) throws SQLException {
         if (!tenantProperties.isCreateTenantRoles()) return;
@@ -456,63 +456,63 @@ public class TenantAwareDataSource extends DelegatingDataSource {
         }
     }
 
-    // SECURITY ENHANCEMENT: Validate tenant permissions
-    public boolean validateTenantPermissions(String schema) throws SQLException {
-        try (Connection conn = super.getConnection();
-             Statement stmt = conn.createStatement()) {
+//    // SECURITY ENHANCEMENT: Validate tenant permissions
+//    public boolean validateTenantPermissions(String schema) throws SQLException {
+//        try (Connection conn = super.getConnection();
+//             Statement stmt = conn.createStatement()) {
+//
+//            String tenantRole = schema + "_user";
+//
+//            // Check public schema permissions (should be read-only)
+//            boolean publicWriteAllowed = checkPublicSchemaWritePermissions(stmt, tenantRole);
+//
+//            // Check own schema permissions (should be full access)
+//            boolean ownSchemaFullAccess = checkOwnSchemaFullAccess(stmt, tenantRole, schema);
+//
+//            return !publicWriteAllowed && ownSchemaFullAccess;
+//        }
+//    }
 
-            String tenantRole = schema + "_user";
-
-            // Check public schema permissions (should be read-only)
-            boolean publicWriteAllowed = checkPublicSchemaWritePermissions(stmt, tenantRole);
-
-            // Check own schema permissions (should be full access)
-            boolean ownSchemaFullAccess = checkOwnSchemaFullAccess(stmt, tenantRole, schema);
-
-            return !publicWriteAllowed && ownSchemaFullAccess;
-        }
-    }
-
-    private boolean checkPublicSchemaWritePermissions(Statement stmt, String tenantRole) throws SQLException {
-        try (var rs = stmt.executeQuery(
-                "SELECT EXISTS (" +
-                        "  SELECT 1 FROM information_schema.role_table_grants " +
-                        "  WHERE grantee = '" + tenantRole + "' " +
-                        "  AND table_schema = 'public' " +
-                        "  AND privilege_type IN ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE')" +
-                        ") as has_write_privileges")) {
-
-            return rs.next() && rs.getBoolean("has_write_privileges");
-        }
-    }
-
-    private boolean checkOwnSchemaFullAccess(Statement stmt, String tenantRole, String schema) throws SQLException {
-        try (var rs = stmt.executeQuery(
-                "SELECT COUNT(*) as table_count, " +
-                        "       SUM(CASE WHEN privilege_type = 'SELECT' THEN 1 ELSE 0 END) as select_count, " +
-                        "       SUM(CASE WHEN privilege_type = 'INSERT' THEN 1 ELSE 0 END) as insert_count, " +
-                        "       SUM(CASE WHEN privilege_type = 'UPDATE' THEN 1 ELSE 0 END) as update_count, " +
-                        "       SUM(CASE WHEN privilege_type = 'DELETE' THEN 1 ELSE 0 END) as delete_count " +
-                        "FROM information_schema.role_table_grants " +
-                        "WHERE grantee = '" + tenantRole + "' " +
-                        "AND table_schema = '" + schema + "'")) {
-
-            if (rs.next()) {
-                int tableCount = rs.getInt("table_count");
-                int selectCount = rs.getInt("select_count");
-                int insertCount = rs.getInt("insert_count");
-                int updateCount = rs.getInt("update_count");
-                int deleteCount = rs.getInt("delete_count");
-
-                return tableCount > 0 &&
-                        selectCount == tableCount &&
-                        insertCount == tableCount &&
-                        updateCount == tableCount &&
-                        deleteCount == tableCount;
-            }
-            return false;
-        }
-    }
+//    private boolean checkPublicSchemaWritePermissions(Statement stmt, String tenantRole) throws SQLException {
+//        try (var rs = stmt.executeQuery(
+//                "SELECT EXISTS (" +
+//                        "  SELECT 1 FROM information_schema.role_table_grants " +
+//                        "  WHERE grantee = '" + tenantRole + "' " +
+//                        "  AND table_schema = 'public' " +
+//                        "  AND privilege_type IN ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE')" +
+//                        ") as has_write_privileges")) {
+//
+//            return rs.next() && rs.getBoolean("has_write_privileges");
+//        }
+//    }
+//
+//    private boolean checkOwnSchemaFullAccess(Statement stmt, String tenantRole, String schema) throws SQLException {
+//        try (var rs = stmt.executeQuery(
+//                "SELECT COUNT(*) as table_count, " +
+//                        "       SUM(CASE WHEN privilege_type = 'SELECT' THEN 1 ELSE 0 END) as select_count, " +
+//                        "       SUM(CASE WHEN privilege_type = 'INSERT' THEN 1 ELSE 0 END) as insert_count, " +
+//                        "       SUM(CASE WHEN privilege_type = 'UPDATE' THEN 1 ELSE 0 END) as update_count, " +
+//                        "       SUM(CASE WHEN privilege_type = 'DELETE' THEN 1 ELSE 0 END) as delete_count " +
+//                        "FROM information_schema.role_table_grants " +
+//                        "WHERE grantee = '" + tenantRole + "' " +
+//                        "AND table_schema = '" + schema + "'")) {
+//
+//            if (rs.next()) {
+//                int tableCount = rs.getInt("table_count");
+//                int selectCount = rs.getInt("select_count");
+//                int insertCount = rs.getInt("insert_count");
+//                int updateCount = rs.getInt("update_count");
+//                int deleteCount = rs.getInt("delete_count");
+//
+//                return tableCount > 0 &&
+//                        selectCount == tableCount &&
+//                        insertCount == tableCount &&
+//                        updateCount == tableCount &&
+//                        deleteCount == tableCount;
+//            }
+//            return false;
+//        }
+//    }
 
     private String getAdminRole() {
         return tenantProperties.getAdminRole() != null ? tenantProperties.getAdminRole() : "postgres";
