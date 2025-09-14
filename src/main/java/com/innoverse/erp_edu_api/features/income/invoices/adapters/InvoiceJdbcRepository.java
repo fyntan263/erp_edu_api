@@ -16,19 +16,19 @@ public interface InvoiceJdbcRepository extends CrudRepository<InvoiceEntity, UUI
     @Modifying
     @Query("""
         INSERT INTO invoices (
-            invoice_id, entity_id, entity_name, invoice_number, description, 
+            invoice_id, entity_id, entity_type, invoice_number, description, 
             issue_date, due_date, total_amount, amount_paid, 
-            currency, status, notes, created_at, updated_at
+            currency, status, notes
         ) VALUES (
-            :invoiceId, :entityId, :entityType, :invoiceNo, :description,
+            :invoiceId, :payeeId, :payeeType, :invoiceNo, :description,
             :issueDate, :dueDate, :totalAmount, :amountPaid,
-            :currency, :status, :notes, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+            :currency, :status, :notes
         )
         """)
     int insertInvoice(
             @Param("invoiceId") UUID invoiceId,
-            @Param("entityId") UUID entityId,
-            @Param("entityType") String entityType,
+            @Param("payeeId") UUID payeeId,
+            @Param("payeeType") String payeeType,
             @Param("invoiceNo") String invoiceNo,
             @Param("description") String description,
             @Param("issueDate") LocalDate issueDate,
@@ -54,21 +54,21 @@ public interface InvoiceJdbcRepository extends CrudRepository<InvoiceEntity, UUI
                li.quantity, li.unit_price, li.tax_rate, li.discount_percentage
         FROM invoices i 
         LEFT JOIN invoice_line_items li ON i.invoice_id = li.invoice_id 
-        WHERE i.entity_id = :entityId AND i.status = :status
+        WHERE i.entity_id = :payeeId AND i.status = :status
         """)
     List<InvoiceWithItemsView> findInvoicesWithItemsByEntityAndStatus(
-            @Param("entityId") UUID entityId,
+            @Param("payeeId") UUID payeeId,
             @Param("status") String status);
 
-    // Search by entityId
+    // Search by payeeId
     @Query("""
         SELECT i.*, li.line_item_id, li.income_source_id, li.description, 
                li.quantity, li.unit_price, li.tax_rate, li.discount_percentage
         FROM invoices i 
         LEFT JOIN invoice_line_items li ON i.invoice_id = li.invoice_id 
-        WHERE i.entity_id = :entityId
+        WHERE i.entity_id = :payeeId
         """)
-    List<InvoiceWithItemsView> findInvoicesWithItemsByEntityId(@Param("entityId") UUID entityId);
+    List<InvoiceWithItemsView> findInvoicesWithItemsBypayeeId(@Param("payeeId") UUID payeeId);
 
     // Search by invoiceFor
     @Query("""
@@ -80,36 +80,36 @@ public interface InvoiceJdbcRepository extends CrudRepository<InvoiceEntity, UUI
         """)
     List<InvoiceWithItemsView> findInvoicesWithItemsByInvoiceFor(@Param("invoiceFor") String invoiceFor);
 
-    // Search by both entityId and invoiceFor
+    // Search by both payeeId and invoiceFor
     @Query("""
         SELECT i.*, li.line_item_id, li.income_source_id, li.description, 
                li.quantity, li.unit_price, li.tax_rate, li.discount_percentage
         FROM invoices i 
         LEFT JOIN invoice_line_items li ON i.invoice_id = li.invoice_id 
-        WHERE i.entity_id = :entityId AND i.invoice_for = :invoiceFor
+        WHERE i.entity_id = :payeeId AND i.invoice_for = :invoiceFor
         """)
     List<InvoiceWithItemsView> findInvoicesWithItemsByEntityAndInvoiceFor(
-            @Param("entityId") UUID entityId,
+            @Param("payeeId") UUID payeeId,
             @Param("invoiceFor") String invoiceFor);
 
     Optional<InvoiceEntity> findByInvoiceNo(String InvoiceNo);
 
-    List<InvoiceEntity> findByEntityId(UUID entityId);
+    List<InvoiceEntity> findBypayeeId(UUID payeeId);
 
-    List<InvoiceEntity> findByEntityType(String entityType);
+    List<InvoiceEntity> findByPayeeType(String payeeType);
 
-    List<InvoiceEntity> findByEntityIdAndEntityType(UUID entityId, String entityType);
+    List<InvoiceEntity> findBypayeeIdAndPayeeType(UUID payeeId, String payeeType);
 
     List<InvoiceEntity> findByStatus(String status);
 
     @Query("SELECT * FROM invoices WHERE due_date < :currentDate AND status IN ('ISSUED', 'PARTIALLY_PAID')")
     List<InvoiceEntity> findOverdueInvoices(@Param("currentDate") LocalDate currentDate);
 
-    @Query("SELECT COALESCE(SUM(total_amount), 0) FROM invoices WHERE entity_id = :entityId")
-    BigDecimal sumInvoicedAmountByEntityId(@Param("entityId") UUID entityId);
+    @Query("SELECT COALESCE(SUM(total_amount), 0) FROM invoices WHERE entity_id = :payeeId")
+    BigDecimal sumInvoicedAmountBypayeeId(@Param("payeeId") UUID payeeId);
 
-    @Query("SELECT COALESCE(SUM(total_amount - amount_paid), 0) FROM invoices WHERE entity_id = :entityId AND status IN ('ISSUED', 'PARTIALLY_PAID', 'OVERDUE')")
-    BigDecimal sumOutstandingAmountByEntityId(@Param("entityId") UUID entityId);
+    @Query("SELECT COALESCE(SUM(total_amount - amount_paid), 0) FROM invoices WHERE entity_id = :payeeId AND status IN ('ISSUED', 'PARTIALLY_PAID', 'OVERDUE')")
+    BigDecimal sumOutstandingAmountBypayeeId(@Param("payeeId") UUID payeeId);
 
     @Modifying
     @Query("UPDATE invoices SET amount_paid = amount_paid + :amount WHERE invoice_id = :invoiceId")

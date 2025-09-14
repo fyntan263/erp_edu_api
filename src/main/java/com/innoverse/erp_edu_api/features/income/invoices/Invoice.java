@@ -4,101 +4,171 @@ import com.innoverse.erp_edu_api.features.income.invoices.domain.InvoiceItem;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.ToString;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Currency;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Getter
+@ToString
 @Builder
 @AllArgsConstructor
 public class Invoice {
-    private UUID invoiceId;
-    private UUID entityId;
-    private String entityType;
-    private String description;
-    private String invoiceNo;
-    private LocalDate issueDate;
+    private final UUID invoiceId;
+    private final UUID payeeId;
+    private final String payeeType;
+    private final String invoiceNo;
+    private final LocalDate issueDate;
     private LocalDate dueDate;
+    private final String currency;
+    private final String notes;
+
+    private Status status;
     private BigDecimal totalAmount;
     private BigDecimal amountPaid;
-    private String currency;
-    private Status status;
-    private String notes;
-    private List<InvoiceItem> lineItems;
+    private final List<InvoiceItem> lineItems;
+    private final LocalDate createdAt;
+    private LocalDate updatedAt;
 
     public enum Status {
         DRAFT, ISSUED, PARTIALLY_PAID, PAID, OVERDUE, CANCELLED, REFUNDED
     }
 
-    // What we can CREATE - Factory method for new invoices
-    public static Invoice create(
-            UUID entityId,
-            String entityType,
-            String description,
+    private Invoice(
+            UUID payeeId,
+            String payeeType,
             LocalDate dueDate,
             String currency,
-            String notes) {
+            String notes
+    ) {
+        Objects.requireNonNull(payeeId, "payeeId is required");
+        if (payeeType == null || payeeType.isBlank())
+            throw new IllegalArgumentException("PayeeType is required");
+        if (!isValidCurrency(currency))
+            throw new IllegalArgumentException("Invalid currency code");
+        if (dueDate != null && dueDate.isBefore(LocalDate.now()))
+            throw new IllegalArgumentException("Due date cannot be in the past");
 
-        return Invoice.builder()
-                .invoiceId(UUID.randomUUID())
-                .entityId(entityId)
-                .entityType(entityType)
-                .invoiceNo(generateInvoiceNo())
-                .issueDate(LocalDate.now())
-                .dueDate(dueDate)
-                .description(description)
-                .totalAmount(BigDecimal.ZERO)
-                .amountPaid(BigDecimal.ZERO)
-                .currency(currency)
-                .status(Status.DRAFT)
-                .notes(notes)
-                .lineItems(List.of())
-                .build();
+        this.invoiceId = UUID.randomUUID();
+        this.payeeId = payeeId;
+        this.payeeType = payeeType;
+        this.invoiceNo = generateInvoiceNo();
+        this.issueDate = null; // Will be set when issued
+        this.dueDate = dueDate;
+        this.currency = currency;
+        this.notes = notes;
+        this.status = Status.DRAFT;
+        this.totalAmount = BigDecimal.ZERO;
+        this.amountPaid = BigDecimal.ZERO;
+        this.lineItems = new ArrayList<>();
+        this.createdAt = LocalDate.now();
+        this.updatedAt = LocalDate.now();
     }
 
-    // What we can DERIVE - Business logic methods
-    private static String generateInvoiceNo() {
-        return "INV-" + System.currentTimeMillis() + "-" +
-                UUID.randomUUID().toString().substring(0, 4).toUpperCase();
+    public static Invoice create(
+            UUID payeeId,
+            String payeeType,
+            LocalDate dueDate,
+            String currency,
+            String notes
+    ) {
+        return new Invoice(payeeId, payeeType, dueDate, currency, notes);
+    }
+
+    // ---------------------- Business Behavior ----------------------
+    public void addLineItem(InvoiceItem item) {
+        ensureModifiable();
+        this.lineItems.add(item);
+        recalculateTotals();
+        this.updatedAt = LocalDate.now();
+    }
+
+    public void removeLineItem(UUID lineItemId) {
+        ensureModifiable();
+        boolean removed = this.lineItems.removeIf(item -> item.getLineItemId().equals(lineItemId));
+        if (removed) {
+            recalculateTotals();
+            this.updatedAt = LocalDate.now();
+        }
+    }
+
+    public void issue() {
+        ensureStatus(Status.DRAFT);
+        if (lineItems.isEmpty()) throw new IllegalStateException("Invoice must have line items before issuing");
+        if (dueDate == null) throw new IllegalStateException("Due date must be set before issuing");
+
+        this.status = Status.ISSUED;
+        this.updatedAt = LocalDate.now();
+    }
+
+    public void applyPayment(BigDecimal amount) {
+        if (status != Status.ISSUED && status != Status.PARTIALLY_PAID && status != Status.OVERDUE) {
+            throw new IllegalStateException("Payments can only be applied to ISSUED, PARTIALLY_PAID, or OVERDUE invoices");
+        }
+        if (amount.compareTo(BigDecimal.ZERO) <= 0)
+            throw new IllegalArgumentException("Payment must be positive");
+        if (amountPaid.add(amount).compareTo(totalAmount) > 0)
+            throw new IllegalArgumentException("Payment exceeds invoice total");
+
+        this.amountPaid = this.amountPaid.add(amount);
+        updateStatus();
+        this.updatedAt = LocalDate.now();
+    }
+
+    public void markAsCancelled() {
+        ensureStatus(Status.DRAFT);
+        this.status = Status.CANCELLED;
+        this.updatedAt = LocalDate.now();
+    }
+
+    public void markAsRefunded() {
+        ensureStatus(Status.PAID);
+        this.status = Status.REFUNDED;
+        this.updatedAt = LocalDate.now();
+    }
+
+    public void updateDueDate(LocalDate newDueDate) {
+        ensureModifiable();
+        if (newDueDate.isBefore(LocalDate.now()))
+            throw new IllegalArgumentException("Due date cannot be in the past");
+        this.dueDate = newDueDate;
+        this.updatedAt = LocalDate.now();
+    }
+
+    public void checkOverdue() {
+        if ((status == Status.ISSUED || status == Status.PARTIALLY_PAID) &&
+                dueDate != null && LocalDate.now().isAfter(dueDate)) {
+            this.status = Status.OVERDUE;
+            this.updatedAt = LocalDate.now();
+        }
     }
 
     public BigDecimal getAmountDue() {
         return totalAmount.subtract(amountPaid);
     }
 
-    public boolean isOverdue() {
-        return status == Status.OVERDUE ||
-                (status == Status.ISSUED && LocalDate.now().isAfter(dueDate));
-    }
-
     public boolean isFullyPaid() {
-        return amountPaid.compareTo(totalAmount) >= 0;
+        return status == Status.PAID;
     }
 
-    // Domain behavior methods
-    public void addLineItem(InvoiceItem lineItem) {
-        this.lineItems.add(lineItem);
-        recalculateTotals();
+    public boolean isOverdue() {
+        return status == Status.OVERDUE;
     }
 
-    public void removeLineItem(UUID lineItemId) {
-        this.lineItems.removeIf(item -> item.getLineItemId().equals(lineItemId));
-        recalculateTotals();
+    public boolean isDraft() {
+        return status == Status.DRAFT;
     }
 
-    public void applyPayment(BigDecimal paymentAmount) {
-        this.amountPaid = this.amountPaid.add(paymentAmount);
-        updateStatus();
+    public boolean isPayable() {
+        return status == Status.ISSUED || status == Status.PARTIALLY_PAID || status == Status.OVERDUE;
     }
 
-    public void markAsCancelled() {
-        if (this.status != Status.DRAFT) {
-            throw new IllegalStateException("Only draft invoices can be cancelled");
-        }
-        this.status = Status.CANCELLED;
+    public boolean hasPayments() {
+        return amountPaid.compareTo(BigDecimal.ZERO) > 0;
     }
+
+    // ---------------------- Private Helpers ----------------------
 
     private void recalculateTotals() {
         this.totalAmount = lineItems.stream()
@@ -108,40 +178,47 @@ public class Invoice {
     }
 
     private void updateStatus() {
-        if (status == Status.CANCELLED || status == Status.REFUNDED) {
-            return; // Don't change status for cancelled/refunded invoices
-        }
+        if (status == Status.CANCELLED || status == Status.REFUNDED) return;
 
-        BigDecimal amountDue = getAmountDue();
-        if (amountDue.compareTo(BigDecimal.ZERO) == 0) {
-            status = Status.PAID;
-        } else if (amountPaid.compareTo(BigDecimal.ZERO) > 0) {
+        if (amountPaid.compareTo(BigDecimal.ZERO) == 0) {
+            if (dueDate != null && LocalDate.now().isAfter(dueDate)) {
+                status = Status.OVERDUE;
+            } else if (status != Status.DRAFT) {
+                status = Status.ISSUED;
+            }
+        } else if (amountPaid.compareTo(totalAmount) < 0) {
             status = Status.PARTIALLY_PAID;
+            if (dueDate != null && LocalDate.now().isAfter(dueDate)) {
+                status = Status.OVERDUE;
+            }
         } else {
-            status = LocalDate.now().isAfter(dueDate) ? Status.OVERDUE : Status.ISSUED;
+            status = Status.PAID;
         }
     }
 
-    public boolean isPayable() {
-        // Basic status check
-        boolean validStatus = status == Status.ISSUED ||
-                status == Status.PARTIALLY_PAID ||
-                status == Status.OVERDUE;
-
-        // Business logic checks
-        boolean hasBalance = getAmountDue().compareTo(BigDecimal.ZERO) > 0;
-        boolean notFinalized = status != Status.PAID &&
-                status != Status.CANCELLED &&
-                status != Status.REFUNDED;
-
-        return validStatus && hasBalance && notFinalized;
+    private void ensureStatus(Status expected) {
+        if (status != expected) {
+            throw new IllegalStateException("Invalid lifecycle transition. Expected " + expected + " but was " + status);
+        }
     }
 
-    public boolean isFullyPayable() {
-        return isPayable() && !isOverdue();
+    private void ensureModifiable() {
+        if (status != Status.DRAFT) {
+            throw new IllegalStateException("Cannot modify invoice once it is issued");
+        }
     }
 
-    public boolean isOverduePayable() {
-        return isPayable() && isOverdue();
+    private static String generateInvoiceNo() {
+        return "INV-" + System.currentTimeMillis() + "-" +
+                UUID.randomUUID().toString().substring(0, 4).toUpperCase();
+    }
+
+    private static boolean isValidCurrency(String code) {
+        try {
+            Currency.getInstance(code);
+            return true;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
     }
 }

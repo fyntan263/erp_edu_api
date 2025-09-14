@@ -11,10 +11,10 @@ public interface InvoiceRepository {
     Invoice save(Invoice invoice);
     Optional<Invoice> findById(UUID invoiceId);
     Optional<Invoice> findByInvoiceNo(String invoiceNo);
-    List<Invoice> findByEntityIdAndName(UUID entityId, String entityType);
-    List<Invoice> findByEntityType(UUID entityId, String entityType);
+    List<Invoice> findBypayeeIdAndName(UUID payeeId, String payeeType);
+    List<Invoice> findByPayeeType(UUID payeeId, String payeeType);
     List<Invoice> findByType(String type);
-    List<Invoice> findByEntityId(UUID entityId);
+    List<Invoice> findBypayeeId(UUID payeeId);
     List<Invoice> findByStatus(Invoice.Status status);
     List<Invoice> findOverdueInvoices(LocalDate currentDate);
 //    BigDecimal sumInvoicedAmountByStudentId(UUID studentId);

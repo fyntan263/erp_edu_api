@@ -31,7 +31,7 @@ public class IncomeSourceRepositoryAdapter implements IncomeSourceRepository {
             repository.customInsert(
                     incomeSource.getIncomeSourceId() != null ? incomeSource.getIncomeSourceId() : UUID.randomUUID(),
                     incomeSource.getAccountingCode(),
-                    incomeSource.getFeeTypeCode(),
+                    incomeSource.getIncomeSourceType().name(),
                     incomeSource.getName(),
                     incomeSource.getDescription(),
                     incomeSource.getRecurrency().name(),

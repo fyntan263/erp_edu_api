@@ -4,7 +4,6 @@ import com.innoverse.erp_edu_api.features.income.invoices.InvoiceServicePort;
 import com.innoverse.erp_edu_api.features.income.invoices.adapters.InvoiceRepositoryAdapter;
 import com.innoverse.erp_edu_api.features.income.invoices.Invoice;
 import com.innoverse.erp_edu_api.features.income.invoices.domain.InvoiceItem;
-import com.innoverse.erp_edu_api.features.income.invoices.dto.ApplyPaymentRequest;
 import com.innoverse.erp_edu_api.features.income.invoices.dto.InvoiceRequest;
 import com.innoverse.erp_edu_api.features.income.invoices.dto.InvoiceItemRequest;
 import lombok.RequiredArgsConstructor;
@@ -23,18 +22,14 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class InvoiceService implements InvoiceServicePort {
     private final InvoiceRepositoryAdapter invoiceRepository;
+//    private final PaymentServiceAdapter paymentServiceAdapter;
 
-    @Transactional
-    public Invoice createInvoice(List<InvoiceItemRequest> request){
-        return null;
-    }
     @Transactional
     @Override
     public Invoice createInvoice(InvoiceRequest command) {
         Invoice invoice = Invoice.create(
-                command.entityId(),
-                command.entityType(),
-                command.description(),
+                command.payeeId(),
+                command.payeeType(),
                 command.dueDate(),
                 command.currency(),
                 command.notes()
@@ -43,8 +38,77 @@ public class InvoiceService implements InvoiceServicePort {
         // Add line items if provided during creation
         if (command.lineItems() != null && !command.lineItems().isEmpty()) {
             for (InvoiceItemRequest itemCommand : command.lineItems()) {
-                InvoiceItem lineItem = InvoiceItem.create(
-                        invoice.getInvoiceId(),
+                InvoiceItem lineItem = InvoiceItem.of(
+                        itemCommand.incomeSourceId(),
+                        itemCommand.description(),
+                        itemCommand.quantity(),
+                        itemCommand.unitPrice(),
+                        itemCommand.taxRate(),
+                        itemCommand.discountPercentage()
+                );
+                invoice.addLineItem(lineItem);
+            }
+
+            // Auto-issue if line items are provided and due date is set
+            if (command.dueDate() != null) {
+                invoice.issue();
+            }
+        }
+        log.info("Creating invoice: {}", invoice);
+        return invoiceRepository.save(invoice);
+    }
+
+    @Transactional
+    @Override
+    public Invoice createDraftInvoice(UUID payeeId, String payeeType, String currency, String notes) {
+        Invoice invoice = Invoice.create(
+                payeeId,
+                payeeType,
+                null, // dueDate can be null for drafts
+                currency,
+                notes
+        );
+
+        log.info("Creating draft invoice: {}", invoice);
+        return invoiceRepository.save(invoice);
+    }
+
+    @Transactional
+    @Override
+    public Invoice issueInvoice(UUID invoiceId) {
+        Invoice invoice = getInvoiceById(invoiceId)
+                .orElseThrow(() -> new IllegalArgumentException("Invoice not found: " + invoiceId));
+
+        invoice.issue();
+        log.info("Issuing invoice: {}", invoiceId);
+        return invoiceRepository.save(invoice);
+    }
+
+    @Transactional
+    @Override
+    public Invoice updateDraftInvoice(UUID invoiceId, InvoiceRequest command) {
+        Invoice invoice = getInvoiceById(invoiceId)
+                .orElseThrow(() -> new IllegalArgumentException("Invoice not found: " + invoiceId));
+
+        if (!invoice.isDraft()) {
+            throw new IllegalStateException("Only draft invoices can be updated");
+        }
+
+        // Update due date if provided
+        if (command.dueDate() != null) {
+            // Create a method in Invoice to update due date
+            invoice.updateDueDate(command.dueDate());
+        }
+
+        // Clear existing line items and add new ones
+        // Note: This is simplified - you might want more granular control
+        if (command.lineItems() != null) {
+            // Remove all existing line items
+            invoice.getLineItems().clear();
+
+            // Add new line items
+            for (InvoiceItemRequest itemCommand : command.lineItems()) {
+                InvoiceItem lineItem = InvoiceItem.of(
                         itemCommand.incomeSourceId(),
                         itemCommand.description(),
                         itemCommand.quantity(),
@@ -55,34 +119,8 @@ public class InvoiceService implements InvoiceServicePort {
                 invoice.addLineItem(lineItem);
             }
         }
-        return invoiceRepository.save(invoice);
-    }
 
-    @Override
-    public Invoice createInvoice(UUID entityId, String entityType, String description, LocalDate dueDate, String currency, List<InvoiceItemRequest> invoiceItemRequests, String notes) {
-        Invoice invoice = Invoice.create(
-                entityId,
-                entityType,
-                description,
-                dueDate,
-                currency,
-                notes
-        );
-
-        if (invoiceItemRequests != null && !invoiceItemRequests.isEmpty()) {
-            for (InvoiceItemRequest item : invoiceItemRequests) {
-                InvoiceItem lineItem = InvoiceItem.create(
-                        invoice.getInvoiceId(),
-                        item.incomeSourceId(),
-                        item.description(),
-                        item.quantity(),
-                        item.unitPrice(),
-                        item.taxRate(),
-                        item.discountPercentage()
-                );
-                invoice.addLineItem(lineItem);
-            }
-        }
+        log.info("Updating draft invoice: {}", invoiceId);
         return invoiceRepository.save(invoice);
     }
 
@@ -100,14 +138,14 @@ public class InvoiceService implements InvoiceServicePort {
 
     @Transactional(readOnly = true)
     @Override
-    public List<Invoice> getInvoicesByEntityId(UUID entityId) {
-        return invoiceRepository.findByEntityId(entityId);
+    public List<Invoice> getInvoicesByPayeeId(UUID payeeId) {
+        return invoiceRepository.findBypayeeId(payeeId);
     }
 
     @Transactional(readOnly = true)
     @Override
-    public List<Invoice> getInvoicesByEntityIdAndType(UUID entityId, String type) {
-        return invoiceRepository.findByEntityIdAndName(entityId, type);
+    public List<Invoice> getInvoicesByPayeeIdAndType(UUID payeeId, String type) {
+        return invoiceRepository.findBypayeeIdAndName(payeeId, type);
     }
 
     @Transactional(readOnly = true)
@@ -124,6 +162,12 @@ public class InvoiceService implements InvoiceServicePort {
 
     @Transactional(readOnly = true)
     @Override
+    public List<Invoice> getDraftInvoices() {
+        return invoiceRepository.findByStatus(Invoice.Status.DRAFT);
+    }
+
+    @Transactional(readOnly = true)
+    @Override
     public List<Invoice> getOverdueInvoices() {
         return invoiceRepository.findOverdueInvoices(LocalDate.now());
     }
@@ -134,12 +178,11 @@ public class InvoiceService implements InvoiceServicePort {
         Invoice invoice = this.invoiceRepository.findById(invoiceId)
                 .orElseThrow(() -> new IllegalArgumentException("Invoice not found: " + invoiceId));
 
-        if (invoice.getStatus() != Invoice.Status.DRAFT) {
+        if (!invoice.isDraft()) {
             throw new IllegalStateException("Cannot add line items to non-draft invoice");
         }
 
-        InvoiceItem lineItem = InvoiceItem.create(
-                invoiceId,
+        InvoiceItem lineItem = InvoiceItem.of(
                 command.incomeSourceId(),
                 command.description(),
                 command.quantity(),
@@ -149,6 +192,7 @@ public class InvoiceService implements InvoiceServicePort {
         );
 
         invoice.addLineItem(lineItem);
+        log.info("Adding line item to invoice: {}", invoiceId);
         return invoiceRepository.save(invoice);
     }
 
@@ -158,11 +202,12 @@ public class InvoiceService implements InvoiceServicePort {
         Invoice invoice = this.invoiceRepository.findById(invoiceId)
                 .orElseThrow(() -> new IllegalArgumentException("Invoice not found: " + invoiceId));
 
-        if (invoice.getStatus() != Invoice.Status.DRAFT) {
+        if (!invoice.isDraft()) {
             throw new IllegalStateException("Cannot remove line items from non-draft invoice");
         }
 
         invoice.removeLineItem(lineItemId);
+        log.info("Removing line item {} from invoice: {}", lineItemId, invoiceId);
         return invoiceRepository.save(invoice);
     }
 
@@ -176,33 +221,53 @@ public class InvoiceService implements InvoiceServicePort {
             throw new IllegalStateException("Cannot apply payment to cancelled or refunded invoice");
         }
 
+        if (invoice.isDraft()) {
+            throw new IllegalStateException("Cannot apply payment to draft invoice");
+        }
+
         if (amount.compareTo(invoice.getAmountDue()) > 0) {
             throw new IllegalArgumentException("Payment amount exceeds amount due");
         }
 
-//        invoice.applyPayment(request.amount());
         try {
-            this.invoiceRepository.applyPayment(invoiceId, amount);
+            invoice.applyPayment(amount);
+            invoiceRepository.save(invoice);
+            log.info("Applied payment of {} to invoice: {}", amount, invoiceId);
             return true;
-        }catch (Exception ex){
+        } catch (Exception ex) {
+            log.error("Failed to apply payment to invoice: {}", invoiceId, ex);
             return false;
         }
-
     }
 
     @Transactional
     @Override
-    public void updateStatus(UUID invoiceId, Invoice.Status status) {
+    public void cancelInvoice(UUID invoiceId) {
         Invoice invoice = this.invoiceRepository.findById(invoiceId)
                 .orElseThrow(() -> new IllegalArgumentException("Invoice not found: " + invoiceId));
 
-        validateStatusTransition(invoice.getStatus(), status);
-
-        // Use domain method for specific status changes
-        if (status == Invoice.Status.CANCELLED) {
-            invoice.markAsCancelled();
+        if (!invoice.isDraft()) {
+            throw new IllegalStateException("Only draft invoices can be cancelled directly");
         }
-         this.invoiceRepository.updateStatus(invoiceId, status);
+
+        invoice.markAsCancelled();
+        invoiceRepository.save(invoice);
+        log.info("Cancelled invoice: {}", invoiceId);
+    }
+
+    @Transactional
+    @Override
+    public void refundInvoice(UUID invoiceId) {
+        Invoice invoice = this.invoiceRepository.findById(invoiceId)
+                .orElseThrow(() -> new IllegalArgumentException("Invoice not found: " + invoiceId));
+
+        if (invoice.getStatus() != Invoice.Status.PAID) {
+            throw new IllegalStateException("Only paid invoices can be refunded");
+        }
+
+        invoice.markAsRefunded();
+        invoiceRepository.save(invoice);
+        log.info("Refunded invoice: {}", invoiceId);
     }
 
     @Transactional
@@ -211,45 +276,11 @@ public class InvoiceService implements InvoiceServicePort {
         Invoice invoice = this.invoiceRepository.findById(invoiceId)
                 .orElseThrow(() -> new IllegalArgumentException("Invoice not found: " + invoiceId));
 
-        if (invoice.getStatus() != Invoice.Status.DRAFT) {
+        if (!invoice.isDraft()) {
             throw new IllegalStateException("Cannot delete non-draft invoice");
         }
 
         invoiceRepository.deleteById(invoiceId);
-    }
-
-    @Transactional(readOnly = true)
-    @Override
-    public BigDecimal getTotalInvoicedAmount(UUID entityId) {
-        return null;//invoiceRepository.sumInvoicedAmountByEntityId(entityId);
-    }
-
-    @Transactional(readOnly = true)
-    @Override
-    public BigDecimal getTotalPaidAmount(UUID entityId) {
-        return null; //invoiceRepository.sumPaidAmountByEntityId(entityId);
-    }
-
-    @Transactional(readOnly = true)
-    @Override
-    public BigDecimal getOutstandingBalance(UUID entityId) {
-        return null;//invoiceRepository.sumOutstandingAmountByEntityId(entityId);
-    }
-
-    @Transactional(readOnly = true)
-    @Override
-    public Long getInvoiceCount(UUID entityId) {
-        return null;//invoiceRepository.countByEntityId(entityId);
-    }
-
-//    @Override
-//    public String generateInvoiceNo() {
-//        return "INV-" + System.currentTimeMillis() + "-" +
-//                UUID.randomUUID().toString().substring(0, 4).toUpperCase();
-//    }
-
-    @Override
-    public boolean validateInvoiceNo(String invoiceNo) {
-        return invoiceNo != null && invoiceNo.startsWith("INV-");
+        log.info("Deleted draft invoice: {}", invoiceId);
     }
 }

@@ -1,17 +1,20 @@
 package com.innoverse.erp_edu_api.features.income.payments.jdbc;
 
 import com.innoverse.erp_edu_api.features.income.payments.Payment;
+import com.innoverse.erp_edu_api.features.income.payments.exceptions.PaymentAlreadyExistsException;
 import com.innoverse.erp_edu_api.features.income.payments.service.PaymentRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 @Repository
 @RequiredArgsConstructor
@@ -23,8 +26,35 @@ public class PaymentRepositoryAdapter implements PaymentRepository {
     @Override
     public Payment save(Payment payment) {
         PaymentEntity entity = PaymentEntity.fromDomain(payment);
-        PaymentEntity savedEntity = jdbcRepository.save(entity);
-        return savedEntity.toDomain();
+        try {
+            if (jdbcRepository.existsById(payment.getPaymentId())) {
+                throw new PaymentAlreadyExistsException(payment.getPaymentId());
+            }
+            // Use the correct method name and parameters
+            jdbcRepository.insertPayment(
+                    entity.getPaymentId(),
+                    entity.getPayeeId(),
+                    entity.getPayeeType(),
+                    entity.getInvoiceId(),
+                    entity.getPaymentNo(),
+                    entity.getPaymentDate(),
+                    entity.getAmount(),
+                    entity.getCurrency(),
+                    entity.getPaymentMethod(),
+                    entity.getStatus(),
+                    entity.getPaymentNotes(),
+                    false // deleted flag
+            );
+            // Retrieve the saved entity to return
+            return jdbcRepository.findByPaymentId(entity.getPaymentId())
+                    .map(PaymentEntity::toDomain)
+                    .orElseThrow(() -> new RuntimeException("Failed to retrieve saved payment"));
+
+        } catch (DuplicateKeyException e) {
+            throw new PaymentAlreadyExistsException(entity.getPaymentId());
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Database error while saving payment", e);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -43,24 +73,24 @@ public class PaymentRepositoryAdapter implements PaymentRepository {
 
     @Transactional(readOnly = true)
     @Override
-    public List<Payment> findByEntityId(UUID entityId) {
-        return jdbcRepository.findByEntityId(entityId).stream()
+    public List<Payment> findBypayeeId(UUID payeeId) {
+        return jdbcRepository.findBypayeeId(payeeId).stream()
                 .map(PaymentEntity::toDomain)
                 .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     @Override
-    public List<Payment> findByEntityIdAndEntityType(UUID entityId, String entityType) {
-        return jdbcRepository.findByEntityIdAndEntityType(entityId, entityType).stream()
+    public List<Payment> findBypayeeIdAndPayeeType(UUID payeeId, String payeeType) {
+        return jdbcRepository.findBypayeeIdAndPayeeType(payeeId, payeeType).stream()
                 .map(PaymentEntity::toDomain)
                 .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     @Override
-    public List<Payment> findByEntityType(String entityType) {
-        return jdbcRepository.findByEntityType(entityType).stream()
+    public List<Payment> findByPayeeType(String payeeType) {
+        return jdbcRepository.findByPayeeType(payeeType).stream()
                 .map(PaymentEntity::toDomain)
                 .collect(Collectors.toList());
     }
@@ -81,19 +111,18 @@ public class PaymentRepositoryAdapter implements PaymentRepository {
                 .collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
-    @Override
-    public Page<Payment> findAll(Pageable pageable) {
-        return jdbcRepository.findAll(pageable)
-                .map(PaymentEntity::toDomain);
-    }
+
 
     @Transactional(readOnly = true)
     @Override
     public List<Payment> findAll() {
-        return jdbcRepository.findAll().stream()
-                .map(PaymentEntity::toDomain)
-                .collect(Collectors.toList());
+        try {
+            return StreamSupport.stream(jdbcRepository.findAll().spliterator(), true)
+                    .map(PaymentEntity::toDomain)
+                    .toList();
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Database error while finding all payments", e);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -104,8 +133,8 @@ public class PaymentRepositoryAdapter implements PaymentRepository {
 
     @Transactional(readOnly = true)
     @Override
-    public long countByEntityId(UUID entityId) {
-        return jdbcRepository.countByEntityId(entityId);
+    public long countBypayeeId(UUID payeeId) {
+        return jdbcRepository.countBypayeeId(payeeId);
     }
 
     @Transactional
@@ -118,5 +147,47 @@ public class PaymentRepositoryAdapter implements PaymentRepository {
     @Override
     public void restoreById(UUID paymentId) {
         jdbcRepository.restoreById(paymentId);
+    }
+    // Add these methods to the adapter:
+    @Transactional(readOnly = true)
+    @Override
+    public List<Payment> findByPaymentMethod(String paymentMethod) {
+        return jdbcRepository.findByPaymentMethod(paymentMethod).stream()
+                .map(PaymentEntity::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<Payment> findBypayeeIdAndStatus(UUID payeeId, String status) {
+        return jdbcRepository.findBypayeeIdAndStatus(payeeId, status).stream()
+                .map(PaymentEntity::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<Payment> findByPaymentDateBetween(LocalDateTime startDate, LocalDateTime endDate) {
+        return jdbcRepository.findByPaymentDateBetween(startDate, endDate).stream()
+                .map(PaymentEntity::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public boolean existsByInvoiceId(UUID invoiceId) {
+        return jdbcRepository.existsByInvoiceId(invoiceId);
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public long countByPayeeType(String entityType) {
+        return jdbcRepository.countByPayeeType(entityType);
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public long countByStatus(String status) {
+        return jdbcRepository.countByStatus(status);
     }
 }

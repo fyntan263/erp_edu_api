@@ -1,6 +1,7 @@
 package com.innoverse.erp_edu_api.features.income.income_stream.web.dto;
 
 import com.innoverse.erp_edu_api.features.income.income_stream.IncomeSource;
+import com.innoverse.erp_edu_api.features.income.income_stream.IncomeSourceType;
 import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
@@ -8,7 +9,7 @@ import java.time.LocalDate;
 import java.util.Currency;
 
 public record CreateIncomeSourceRequest(
-        @NotBlank @Size(max = 50) String feeTypeCode,
+        @NotBlank @Size(max = 50) IncomeSourceType incomeSourceType,
         @NotBlank @Size(max = 255) String name,
         String description,
 

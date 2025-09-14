@@ -13,7 +13,7 @@ import java.util.UUID;
 public class IncomeSource {
     private UUID incomeSourceId;
     private String accountingCode;
-    private String feeTypeCode;
+    private IncomeSourceType incomeSourceType;
     private String name;
     private String description;
     private Recurrency recurrency;
@@ -36,7 +36,7 @@ public class IncomeSource {
     }
 
     public static IncomeSource create(
-            String feeTypeCode,
+            IncomeSourceType incomeSourceType,
             String name,
             String description,
             Recurrency recurrency,
@@ -53,7 +53,7 @@ public class IncomeSource {
         return IncomeSource.builder()
                 .incomeSourceId(UUID.randomUUID())
                 .accountingCode(generateAccountingCode())
-                .feeTypeCode(feeTypeCode)
+                .incomeSourceType(incomeSourceType)
                 .name(name)
                 .description(description)
                 .recurrency(recurrency)
@@ -130,7 +130,7 @@ public class IncomeSource {
         return "IncomeSource{" +
                 "incomeSourceId=" + incomeSourceId +
                 ", accountingCode='" + accountingCode + '\'' +
-                ", feeTypeCode='" + feeTypeCode + '\'' +
+                ", incomeSourceType='" + incomeSourceType + '\'' +
                 ", name='" + name + '\'' +
                 ", description='" + description + '\'' +
                 ", recurrency=" + recurrency +

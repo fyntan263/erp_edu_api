@@ -14,10 +14,10 @@ public interface InvoiceItemJdbcRepository extends CrudRepository<InvoiceItemEnt
     @Query("""
         INSERT INTO invoice_line_items (
             line_item_id, invoice_id, income_source_id, description,
-            quantity, unit_price, tax_rate, discount_percentage, created_at
+            quantity, unit_price, tax_rate, discount_percentage
         ) VALUES (
             :lineItemId, :invoiceId, :incomeSourceId, :description,
-            :quantity, :unitPrice, :taxRate, :discountPercentage, CURRENT_TIMESTAMP
+            :quantity, :unitPrice, :taxRate, :discountPercentage
         )
         """)
     int insertLineItem(

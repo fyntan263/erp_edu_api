@@ -11,10 +11,9 @@ import java.util.stream.Collectors;
 
 public record InvoiceDTO(
         UUID invoiceId,
-        UUID entityId,
-        String entityType,
+        UUID payeeId,
+        String payeeType,
         String invoiceNo,
-        String description,
         LocalDate issueDate,
         LocalDate dueDate,
         BigDecimal totalAmount,
@@ -27,10 +26,9 @@ public record InvoiceDTO(
     public static InvoiceDTO fromDomain(Invoice invoice) {
         return new InvoiceDTO(
                 invoice.getInvoiceId(),
-                invoice.getEntityId(),
-                invoice.getEntityType(),
+                invoice.getPayeeId(),
+                invoice.getPayeeType(),
                 invoice.getInvoiceNo(),
-                invoice.getDescription(),
                 invoice.getIssueDate(),
                 invoice.getDueDate(),
                 invoice.getTotalAmount(),

@@ -27,7 +27,7 @@ public record InvoiceItemDTO(
                 item.getQuantity(),
                 item.getUnitPrice(),
                 item.getTaxRate(),
-                item.getDiscountPercentage(),
+                item.getDiscount(),
                 item.getSubtotal(),
                 item.getDiscountAmount(),
                 item.getTaxableAmount(),

@@ -10,8 +10,8 @@ import java.util.UUID;
 // Response DTOs
 public record PaymentDTO(
         UUID paymentId,
-        UUID entityId,
-        String entityType,
+        UUID payeeId,
+        String payeeType,
         UUID invoiceId,
         String paymentNo,
         LocalDateTime paymentDate,
@@ -24,8 +24,8 @@ public record PaymentDTO(
     public static PaymentDTO fromDomain(Payment payment) {
         return new PaymentDTO(
                 payment.getPaymentId(),
-                payment.getEntityId(),
-                payment.getEntityType(),
+                payment.getPayeeId(),
+                payment.getPayeeType(),
                 payment.getInvoiceId(),
                 payment.getPaymentNo(),
                 payment.getPaymentDate(),

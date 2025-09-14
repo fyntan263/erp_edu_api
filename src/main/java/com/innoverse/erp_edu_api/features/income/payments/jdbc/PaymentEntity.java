@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Immutable;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
@@ -18,6 +19,7 @@ import java.util.UUID;
 @Table("payments")
 @Getter
 @Builder
+@Immutable
 @AllArgsConstructor
 public class PaymentEntity {
 
@@ -26,10 +28,10 @@ public class PaymentEntity {
     private UUID paymentId;
 
     @Column("entity_id") // Changed from student_id
-    private UUID entityId;
+    private UUID payeeId;
 
     @Column("entity_type") // New field
-    private String entityType;
+    private String payeeType;
 
     @Column("invoice_id")
     private UUID invoiceId;
@@ -70,10 +72,13 @@ public class PaymentEntity {
     private Instant updatedAt;
 
     public static PaymentEntity fromDomain(Payment domain) {
+        if (domain == null) {
+            throw new IllegalArgumentException("Payment domain object cannot be null");
+        }
         return PaymentEntity.builder()
                 .paymentId(domain.getPaymentId())
-                .entityId(domain.getEntityId())
-                .entityType(domain.getEntityType())
+                .payeeId(domain.getPayeeId())
+                .payeeType(domain.getPayeeType())
                 .invoiceId(domain.getInvoiceId())
                 .paymentNo(domain.getPaymentNo())
                 .paymentDate(domain.getPaymentDate())
@@ -90,8 +95,8 @@ public class PaymentEntity {
     public Payment toDomain() {
         return Payment.builder()
                 .paymentId(paymentId)
-                .entityId(entityId)
-                .entityType(entityType)
+                .payeeId(payeeId)
+                .payeeType(payeeType)
                 .invoiceId(invoiceId)
                 .paymentNo(paymentNo)
                 .paymentDate(paymentDate)

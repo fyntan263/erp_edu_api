@@ -1,8 +1,8 @@
 -- Payments table (updated to match PaymentEntity)
 CREATE TABLE payments (
                           payment_id UUID PRIMARY KEY,
-                          entity_id UUID NOT NULL, -- Changed from student_id
-                          entity_type VARCHAR(50) NOT NULL, -- New column
+                          payee_id UUID NOT NULL, -- Changed from student_id
+                          payee_type VARCHAR(100) NOT NULL, -- New column
                           invoice_id UUID NULL,
                           payment_number VARCHAR(50) NOT NULL UNIQUE,
                           payment_date TIMESTAMP NOT NULL,
@@ -24,7 +24,7 @@ CREATE TABLE payments (
 );
 
 -- Updated indexes for payments
-CREATE INDEX idx_payments_entity ON payments(entity_id, entity_type);
+CREATE INDEX idx_payments_entity ON payments(payee_id, payee_type);
 CREATE INDEX idx_payments_invoice ON payments(invoice_id);
 CREATE INDEX idx_payments_status ON payments(status);
 CREATE INDEX idx_payments_date ON payments(payment_date);

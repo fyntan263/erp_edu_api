@@ -1,28 +1,28 @@
 package com.innoverse.erp_edu_api.features.income.payments;
 
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Currency;
 import java.util.UUID;
 
 @Getter
-@Builder
-@AllArgsConstructor
+@Builder(toBuilder = true)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class Payment {
-    private UUID paymentId;
-    private UUID entityId; // Changed from studentId to entityId
-    private String entityType; // e.g., "STUDENT", "TEACHER", "COURSE"
-    private UUID invoiceId;
-    private String paymentNo;
-    private LocalDateTime paymentDate;
-    private BigDecimal amount;
-    private String currency;
-    private PaymentMethod paymentMethod;
-    private PaymentStatus status;
-    private String paymentNotes;
+    private final UUID paymentId;
+    private final UUID payeeId;
+    private final String payeeType;
+    private final UUID invoiceId;
+    private final String paymentNo;
+    private final LocalDateTime paymentDate;
+    private final BigDecimal amount;
+    private final String currency;
+    private final PaymentMethod paymentMethod;
+    private final PaymentStatus status;
+    private final String paymentNotes;
 
     public enum PaymentMethod {
         CASH, BANK_TRANSFER, ECOCASH, ONEMONEY, CHEQUE, CREDIT_CARD, DEBIT_CARD
@@ -33,8 +33,8 @@ public class Payment {
     }
 
     public static Payment create(
-            UUID entityId,
-            String entityType,
+            UUID payeeId,
+            String payeeType,
             UUID invoiceId,
             BigDecimal amount,
             String currency,
@@ -43,8 +43,8 @@ public class Payment {
 
         Payment payment = Payment.builder()
                 .paymentId(UUID.randomUUID())
-                .entityId(entityId)
-                .entityType(entityType)
+                .payeeId(payeeId)
+                .payeeType(payeeType)
                 .invoiceId(invoiceId)
                 .paymentNo(generatePaymentNo())
                 .paymentDate(LocalDateTime.now())
@@ -64,16 +64,15 @@ public class Payment {
                 UUID.randomUUID().toString().substring(0, 4).toUpperCase();
     }
 
-    // Validation method
     public void validate() {
         if (paymentId == null) {
             throw new IllegalArgumentException("Payment ID cannot be null");
         }
-        if (entityId == null) {
-            throw new IllegalArgumentException("Entity ID cannot be null");
+        if (payeeId == null) {
+            throw new IllegalArgumentException("Payee ID cannot be null");
         }
-        if (entityType == null || entityType.isBlank()) {
-            throw new IllegalArgumentException("Entity type cannot be null or empty");
+        if (payeeType == null || payeeType.isBlank()) {
+            throw new IllegalArgumentException("Payee type cannot be null or empty");
         }
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Amount must be positive");
@@ -98,40 +97,96 @@ public class Payment {
         }
     }
 
-    // ... rest of the methods remain similar but updated for entityId'
-    public void markAsPending() {
-        this.status = PaymentStatus.PENDING;
-    }
-    public void markAsCompleted() {
-        this.status = PaymentStatus.COMPLETED;
-    }
-
-    public void markAsFailed(String reason) {
-        this.status = PaymentStatus.FAILED;
-        this.paymentNotes = reason != null ? reason : this.paymentNotes;
+    // State transition methods with domain validation
+    public Payment markAsCompleted() {
+        validateTransition(PaymentStatus.COMPLETED);
+        return this.toBuilder()
+                .status(PaymentStatus.COMPLETED)
+                .build();
     }
 
-    public void markAsRefunded() {
-        if (!isCompleted()) {
-            throw new IllegalStateException("Payment must be completed before refunding");
-        }
-        this.status = PaymentStatus.REFUNDED;
+    public Payment markAsFailed(String reason) {
+        validateTransition(PaymentStatus.FAILED);
+        String updatedNotes = reason != null ? reason : this.paymentNotes;
+        return this.toBuilder()
+                .status(PaymentStatus.FAILED)
+                .paymentNotes(updatedNotes)
+                .build();
     }
 
-    public void markAsPartiallyRefunded() {
-        if (!isCompleted()) {
-            throw new IllegalStateException("Payment must be completed before partial refund");
-        }
-        this.status = PaymentStatus.PARTIALLY_REFUNDED;
+    public Payment markAsRefunded() {
+        validateTransition(PaymentStatus.REFUNDED);
+        return this.toBuilder()
+                .status(PaymentStatus.REFUNDED)
+                .build();
     }
 
-    public void updateNotes(String notes) {
+    public Payment markAsPartiallyRefunded() {
+        validateTransition(PaymentStatus.PARTIALLY_REFUNDED);
+        return this.toBuilder()
+                .status(PaymentStatus.PARTIALLY_REFUNDED)
+                .build();
+    }
+
+    public Payment markAsPending() {
+        validateTransition(PaymentStatus.PENDING);
+        return this.toBuilder()
+                .status(PaymentStatus.PENDING)
+                .build();
+    }
+
+    public Payment updateNotes(String notes) {
         if (notes != null && notes.length() > 1000) {
             throw new IllegalArgumentException("Payment notes cannot exceed 1000 characters");
         }
-        this.paymentNotes = notes;
+        return this.toBuilder()
+                .paymentNotes(notes)
+                .build();
     }
 
+    // Core state transition validation logic
+    private void validateTransition(PaymentStatus newStatus) {
+        if (this.status == newStatus) {
+            throw new IllegalStateException("Payment is already in status: " + newStatus);
+        }
+
+        switch (this.status) {
+            case REFUNDED:
+                throw new IllegalStateException("Cannot modify a refunded payment");
+
+            case FAILED:
+                if (newStatus != PaymentStatus.PENDING) {
+                    throw new IllegalStateException("Failed payments can only be retried to PENDING");
+                }
+                break;
+
+            case COMPLETED:
+                if (newStatus != PaymentStatus.REFUNDED && newStatus != PaymentStatus.PARTIALLY_REFUNDED) {
+                    throw new IllegalStateException("Completed payments can only be refunded or partially refunded");
+                }
+                break;
+
+            case PARTIALLY_REFUNDED:
+                if (newStatus != PaymentStatus.REFUNDED) {
+                    throw new IllegalStateException("Partially refunded payments can only be fully refunded");
+                }
+                break;
+
+            case PENDING:
+                // PENDING can transition to COMPLETED or FAILED
+                if (newStatus != PaymentStatus.COMPLETED && newStatus != PaymentStatus.FAILED) {
+                    throw new IllegalStateException("Pending payments can only transition to COMPLETED or FAILED");
+                }
+                break;
+        }
+
+        // Additional business rules
+        if ((newStatus == PaymentStatus.REFUNDED || newStatus == PaymentStatus.PARTIALLY_REFUNDED) && !isRefundable()) {
+            throw new IllegalStateException("Payment is not refundable");
+        }
+    }
+
+    // Query methods
     public boolean isCompleted() {
         return status == PaymentStatus.COMPLETED;
     }
@@ -150,5 +205,32 @@ public class Payment {
 
     public boolean canBeModified() {
         return status != PaymentStatus.REFUNDED && status != PaymentStatus.FAILED;
+    }
+
+    // Helper method to get allowed transitions (useful for UI)
+    public PaymentStatus[] getAllowedTransitions() {
+        switch (this.status) {
+            case PENDING:
+                return new PaymentStatus[]{PaymentStatus.COMPLETED, PaymentStatus.FAILED};
+            case COMPLETED:
+                return new PaymentStatus[]{PaymentStatus.REFUNDED, PaymentStatus.PARTIALLY_REFUNDED};
+            case FAILED:
+                return new PaymentStatus[]{PaymentStatus.PENDING};
+            case PARTIALLY_REFUNDED:
+                return new PaymentStatus[]{PaymentStatus.REFUNDED};
+            case REFUNDED:
+                return new PaymentStatus[]{};
+            default:
+                return new PaymentStatus[]{};
+        }
+    }
+
+    public boolean canTransitionTo(PaymentStatus newStatus) {
+        for (PaymentStatus allowed : getAllowedTransitions()) {
+            if (allowed == newStatus) {
+                return true;
+            }
+        }
+        return false;
     }
 }

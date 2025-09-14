@@ -24,7 +24,7 @@ public interface IncomeSourceJdbcRepository extends CrudRepository<IncomeSourceE
 
     List<IncomeSourceEntity> findByCurrency(String currency);
 
-    List<IncomeSourceEntity> findByFeeTypeCode(String feeTypeCode);
+    List<IncomeSourceEntity> findByIncomeSourceType(String incomeSourceType);
 
     @Query("SELECT * FROM income_sources WHERE is_active = true AND effective_from <= CURRENT_DATE AND (effective_to IS NULL OR effective_to >= CURRENT_DATE)")
     List<IncomeSource> findActiveAndEffective();
@@ -39,7 +39,7 @@ public interface IncomeSourceJdbcRepository extends CrudRepository<IncomeSourceE
         INSERT INTO income_sources (
             income_source_id,
             accounting_code,
-            fee_type_code,
+            income_source_type,
             name,
             description,
             recurrency,
@@ -55,7 +55,7 @@ public interface IncomeSourceJdbcRepository extends CrudRepository<IncomeSourceE
         ) VALUES (
             :incomeSourceId,
             :accountingCode,
-            :feeTypeCode,
+            :incomeSourceType,
             :name,
             :description,
             :recurrency,
@@ -73,7 +73,7 @@ public interface IncomeSourceJdbcRepository extends CrudRepository<IncomeSourceE
     void customInsert(
             @Param("incomeSourceId") UUID incomeSourceId,
             @Param("accountingCode") String accountingCode,
-            @Param("feeTypeCode") String feeTypeCode,
+            @Param("incomeSourceType") String incomeSourceType,
             @Param("name") String name,
             @Param("description") String description,
             @Param("recurrency") String recurrency,

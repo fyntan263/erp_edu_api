@@ -25,10 +25,10 @@ public class InvoiceEntity {
     private UUID invoiceId;
 
     @Column("entity_id")
-    private UUID entityId;
+    private UUID payeeId;
 
     @Column("entity_type")
-    private String entityType;
+    private String payeeType;
 
     @Column("invoice_number")
     private String invoiceNo;
@@ -68,10 +68,9 @@ public class InvoiceEntity {
     public static InvoiceEntity fromDomain(Invoice domain) {
         return InvoiceEntity.builder()
                 .invoiceId(domain.getInvoiceId())
-                .entityId(domain.getEntityId())
-                .entityType(domain.getEntityType())
+                .payeeId(domain.getPayeeId())
+                .payeeType(domain.getPayeeType())
                 .invoiceNo(domain.getInvoiceNo())
-                .description(domain.getDescription())
                 .issueDate(domain.getIssueDate())
                 .dueDate(domain.getDueDate())
                 .totalAmount(domain.getTotalAmount())
@@ -85,10 +84,9 @@ public class InvoiceEntity {
     public Invoice toDomain() {
         return Invoice.builder()
                 .invoiceId(invoiceId)
-                .entityId(entityId)
-                .entityType(entityType)
+                .payeeId(payeeId)
+                .payeeType(payeeType)
                 .invoiceNo(invoiceNo)
-                .description(description)
                 .issueDate(issueDate)
                 .dueDate(dueDate)
                 .totalAmount(totalAmount)

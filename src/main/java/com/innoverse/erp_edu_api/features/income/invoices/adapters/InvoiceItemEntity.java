@@ -39,31 +39,30 @@ public class InvoiceItemEntity {
     private BigDecimal taxRate;
 
     @Column("discount_percentage")
-    private BigDecimal discountPercentage;
+    private BigDecimal discount;
 
-    public static InvoiceItemEntity fromDomain(InvoiceItem domain) {
+    public static InvoiceItemEntity fromDomain(UUID invoiceId, InvoiceItem domain) {
         return InvoiceItemEntity.builder()
                 .lineItemId(domain.getLineItemId())
-                .invoiceId(domain.getInvoiceId())
+                .invoiceId(invoiceId)
                 .incomeSourceId(domain.getIncomeSourceId())
                 .description(domain.getDescription())
                 .quantity(domain.getQuantity())
                 .unitPrice(domain.getUnitPrice())
                 .taxRate(domain.getTaxRate())
-                .discountPercentage(domain.getDiscountPercentage())
+                .discount(domain.getDiscount())
                 .build();
     }
 
     public InvoiceItem toDomain() {
         return com.innoverse.erp_edu_api.features.income.invoices.domain.InvoiceItem.builder()
                 .lineItemId(lineItemId)
-                .invoiceId(invoiceId)
                 .incomeSourceId(incomeSourceId)
                 .description(description)
                 .quantity(quantity)
                 .unitPrice(unitPrice)
                 .taxRate(taxRate)
-                .discountPercentage(discountPercentage)
+                .discount(discount)
                 .build();
     }
 }
