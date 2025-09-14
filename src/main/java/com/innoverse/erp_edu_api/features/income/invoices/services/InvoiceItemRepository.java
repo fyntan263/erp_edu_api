@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.UUID;
 
 public interface InvoiceItemRepository {
-    InvoiceItem save(InvoiceItem item);
+    InvoiceItem save(UUID invoiceId, InvoiceItem item);
     List<InvoiceItem> findByInvoiceId(UUID invoiceId);
     List<InvoiceItem> findByIncomeSourceId(UUID incomeSourceId);
     void deleteByInvoiceId(UUID invoiceId);

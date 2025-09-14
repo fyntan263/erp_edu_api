@@ -27,7 +27,7 @@ public class IncomeSourceService implements IncomeSourceServicePort {
     public Optional<IncomeSource> createIncomeSource(CreateIncomeSourceRequest request) {
         try {
             IncomeSource incomeSource = IncomeSource.create(
-                    request.feeTypeCode(),
+                    request.incomeSourceType(),
                     request.name(),
                     request.description(),
                     request.recurrency(),

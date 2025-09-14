@@ -25,14 +25,13 @@ public class InvoiceRepositoryAdapter implements InvoiceRepository {
     @Transactional
     public Invoice save(Invoice invoice) {
         InvoiceEntity entity = InvoiceEntity.fromDomain(invoice);
-        InvoiceEntity savedEntity = null;
-        if(this.jdbcRepository.existsById(entity.getInvoiceId())) {
-           savedEntity = jdbcRepository.save(entity);
-        } else {
-             jdbcRepository.insertInvoice(
+        boolean isNew = !jdbcRepository.existsById(entity.getInvoiceId());
+
+        if (isNew) {
+            jdbcRepository.insertInvoice(
                     entity.getInvoiceId(),
-                    entity.getEntityId(),
-                    entity.getEntityType(),
+                    entity.getPayeeId(),
+                    entity.getPayeeType(),
                     entity.getInvoiceNo(),
                     entity.getDescription(),
                     entity.getIssueDate(),
@@ -43,15 +42,31 @@ public class InvoiceRepositoryAdapter implements InvoiceRepository {
                     entity.getStatus(),
                     entity.getNotes()
             );
+        } else {
+            jdbcRepository.save(entity);
+            itemJdbcRepository.deleteByInvoiceId(entity.getInvoiceId());
         }
-
-
-        // Save line items
         if (invoice.getLineItems() != null && !invoice.getLineItems().isEmpty()) {
-            this.itemJdbcRepository.saveAll(invoice.getLineItems()
-                    .stream().map(InvoiceItemEntity::fromDomain).collect(Collectors.toList()));
+            List<InvoiceItemEntity> itemEntities = invoice.getLineItems()
+                    .stream()
+                    .map(x -> InvoiceItemEntity.fromDomain(invoice.getInvoiceId(),x))
+                    .toList();
+            for(InvoiceItemEntity itemEntity : itemEntities) {
+                itemJdbcRepository.insertLineItem(
+                        itemEntity.getLineItemId(),
+                        itemEntity.getInvoiceId(),
+                        itemEntity.getIncomeSourceId(),
+                        itemEntity.getDescription(),
+                        itemEntity.getQuantity(),
+                        itemEntity.getUnitPrice(),
+                        itemEntity.getTaxRate(),
+                        itemEntity.getDiscount()
+                );
+            }
         }
-        return null;
+
+        // Return the saved invoice by fetching it with items
+        return toDomainWithItems(entity);
     }
 
     @Override
@@ -69,7 +84,7 @@ public class InvoiceRepositoryAdapter implements InvoiceRepository {
     }
 
     @Override
-    public List<Invoice> findByEntityIdAndName(UUID entityId, String entityType) {
+    public List<Invoice> findBypayeeIdAndName(UUID payeeId, String payeeType) {
         return List.of();
     }
 
@@ -79,14 +94,14 @@ public class InvoiceRepositoryAdapter implements InvoiceRepository {
     }
 
     @Override
-    public List<Invoice> findByEntityId(UUID entityId) {
+    public List<Invoice> findBypayeeId(UUID payeeId) {
         return List.of();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<Invoice> findByEntityType(UUID entityId, String entityType) {
-        List<InvoiceEntity> invoices = jdbcRepository.findByEntityIdAndEntityType(entityId,entityType);
+    public List<Invoice> findByPayeeType(UUID payeeId, String payeeType) {
+        List<InvoiceEntity> invoices = jdbcRepository.findBypayeeIdAndPayeeType(payeeId,payeeType);
         return invoices.stream()
                 .map(this::toDomainWithItems)
                 .collect(Collectors.toList());

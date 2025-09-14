@@ -1,6 +1,7 @@
 package com.innoverse.erp_edu_api.features.income.income_stream.web.dto;
 
 import com.innoverse.erp_edu_api.features.income.income_stream.IncomeSource;
+import com.innoverse.erp_edu_api.features.income.income_stream.IncomeSourceType;
 import lombok.Builder;
 
 import java.math.BigDecimal;
@@ -10,7 +11,7 @@ import java.util.UUID;
 public record IncomeSourceDto(
         UUID id,
         String accountingCode,
-        String feeTypeCode,
+        IncomeSourceType incomeSourceType,
         String name,
         String description,
         String recurrency,
@@ -35,7 +36,7 @@ public record IncomeSourceDto(
         return IncomeSourceDto.builder()
                 .id(source.getIncomeSourceId())
                 .accountingCode(source.getAccountingCode())
-                .feeTypeCode(source.getFeeTypeCode())
+                .incomeSourceType(source.getIncomeSourceType())
                 .name(source.getName())
                 .description(source.getDescription())
                 .recurrency(source.getRecurrency() != null ? source.getRecurrency().name() : null)

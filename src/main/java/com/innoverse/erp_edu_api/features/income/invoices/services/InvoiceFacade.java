@@ -19,7 +19,6 @@ public class InvoiceFacade {
 
     private final InvoiceServicePort invoiceService;
 
-
     public InvoiceDTO createInvoice(InvoiceRequest request) {
         Invoice invoice = invoiceService.createInvoice(request);
         return InvoiceDTO.fromDomain(invoice);
@@ -30,8 +29,8 @@ public class InvoiceFacade {
                 .map(InvoiceDTO::fromDomain);
     }
 
-    public List<InvoiceDTO> getInvoicesByEntityId(UUID entityId) {
-        List<Invoice> invoices = invoiceService.getInvoicesByEntityId(entityId);
+    public List<InvoiceDTO> getInvoicesByPayeeId(UUID payeeId) {
+        List<Invoice> invoices = invoiceService.getInvoicesByPayeeId(payeeId);
         return invoices.stream().map(InvoiceDTO::fromDomain).toList();
     }
 

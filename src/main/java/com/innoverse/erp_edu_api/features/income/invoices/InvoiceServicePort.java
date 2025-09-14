@@ -1,39 +1,38 @@
 package com.innoverse.erp_edu_api.features.income.invoices;
 
-import com.innoverse.erp_edu_api.features.income.invoices.dto.*;
+import com.innoverse.erp_edu_api.features.income.invoices.dto.InvoiceItemRequest;
+import com.innoverse.erp_edu_api.features.income.invoices.dto.InvoiceRequest;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.Currency;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 public interface InvoiceServicePort {
     @Transactional
-    Invoice createInvoice(InvoiceRequest request);
+    Invoice createInvoice(InvoiceRequest command);
 
     @Transactional
-    Invoice createInvoice(
-            UUID entityId,
-            String entityType,
-            String description,
-            LocalDate dueDate,
-            String currency,
-            List<InvoiceItemRequest> invoiceItemRequests,
-            String notes
-    );
+    Invoice createDraftInvoice(UUID payeeId, String payeeType, String currency, String notes);
+
+    @Transactional
+    Invoice issueInvoice(UUID invoiceId);
+
+    @Transactional
+    Invoice updateDraftInvoice(UUID invoiceId, InvoiceRequest command);
 
     @Transactional(readOnly = true)
     Optional<Invoice> getInvoiceById(UUID invoiceId);
-    @Transactional(readOnly = true)
-    List<Invoice> getInvoicesByEntityId(UUID entityId);
-
-
 
     @Transactional(readOnly = true)
-    List<Invoice> getInvoicesByEntityIdAndType(UUID entityId, String invoiceFor);
+    Optional<Invoice> getInvoiceByNo(String invoiceNo);
+
+    @Transactional(readOnly = true)
+    List<Invoice> getInvoicesByPayeeId(UUID payeeId);
+
+    @Transactional(readOnly = true)
+    List<Invoice> getInvoicesByPayeeIdAndType(UUID payeeId, String type);
 
     @Transactional(readOnly = true)
     List<Invoice> getInvoicesByType(String invoiceFor);
@@ -42,10 +41,13 @@ public interface InvoiceServicePort {
     List<Invoice> getInvoicesByStatus(Invoice.Status status);
 
     @Transactional(readOnly = true)
+    List<Invoice> getDraftInvoices();
+
+    @Transactional(readOnly = true)
     List<Invoice> getOverdueInvoices();
 
     @Transactional
-    Invoice addLineItem(UUID invoiceId, InvoiceItemRequest request);
+    Invoice addLineItem(UUID invoiceId, InvoiceItemRequest command);
 
     @Transactional
     Invoice removeLineItem(UUID invoiceId, UUID lineItemId);
@@ -53,30 +55,12 @@ public interface InvoiceServicePort {
     @Transactional
     boolean applyPayment(UUID invoiceId, BigDecimal amount);
 
-    @Transactional(readOnly = true)
-    Optional<Invoice> getInvoiceByNo(String invoiceNo);
     @Transactional
-    void updateStatus(UUID invoiceId, Invoice.Status status);
+    void cancelInvoice(UUID invoiceId);
 
-    default void validateStatusTransition(Invoice.Status current, Invoice.Status next) {
-        // Validation logic here
-    }
+    @Transactional
+    void refundInvoice(UUID invoiceId);
 
     @Transactional
     void deleteInvoice(UUID invoiceId);
-
-    @Transactional(readOnly = true)
-    BigDecimal getTotalInvoicedAmount(UUID entityId);
-
-    @Transactional(readOnly = true)
-    BigDecimal getTotalPaidAmount(UUID entityId);
-
-    @Transactional(readOnly = true)
-    BigDecimal getOutstandingBalance(UUID entityId);
-
-    @Transactional(readOnly = true)
-    Long getInvoiceCount(UUID entityId);
-
-    boolean validateInvoiceNo(String invoiceNo);
-
 }

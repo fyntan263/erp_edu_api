@@ -10,8 +10,8 @@ import java.util.UUID;
 
 public record PaymentResponse(
         UUID paymentId,
-        UUID entityId,
-        String entityType,
+        UUID payeeId,
+        String payeeType,
         UUID invoiceId,
         String paymentNo,
         LocalDateTime paymentDate,
@@ -26,8 +26,8 @@ public record PaymentResponse(
     public static PaymentResponse fromDomain(Payment payment) {
         return new PaymentResponse(
                 payment.getPaymentId(),
-                payment.getEntityId(),
-                payment.getEntityType(),
+                payment.getPayeeId(),
+                payment.getPayeeType(),
                 payment.getInvoiceId(),
                 payment.getPaymentNo(),
                 payment.getPaymentDate(),

@@ -2,8 +2,8 @@
 -- Invoices table (updated to match Invoice entity)
 CREATE TABLE invoices (
                           invoice_id UUID PRIMARY KEY,
-                          entity_id UUID NOT NULL, -- Changed from student_id
-                          entity_type VARCHAR(50) NOT NULL, -- New column
+                          payee_id UUID NOT NULL, -- Changed from student_id
+                          payee_type VARCHAR(50) NOT NULL, -- New column
                           invoice_number VARCHAR(50) NOT NULL UNIQUE,
                           description VARCHAR(500), -- New column
                           issue_date DATE NOT NULL,
@@ -25,7 +25,7 @@ CREATE TABLE invoices (
 );
 
 -- Updated indexes for invoices
-CREATE INDEX idx_invoices_entity ON invoices(entity_id, entity_type);
+CREATE INDEX idx_invoices_entity ON invoices(payee_id, payee_type);
 CREATE INDEX idx_invoices_status ON invoices(status);
 CREATE INDEX idx_invoices_due_date ON invoices(due_date);
 CREATE INDEX idx_invoices_created_at ON invoices(created_at);

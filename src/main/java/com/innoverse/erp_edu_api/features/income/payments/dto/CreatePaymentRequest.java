@@ -10,8 +10,8 @@ import java.util.UUID;
 
 // Request DTOs
 public record CreatePaymentRequest(
-        UUID entityId,
-        String entityType,
+        UUID payeeId,
+        String payeeType,
         UUID invoiceId,
         BigDecimal amount,
         String currency,

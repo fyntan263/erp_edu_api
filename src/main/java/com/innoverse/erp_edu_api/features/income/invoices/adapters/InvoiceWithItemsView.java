@@ -7,7 +7,7 @@ import java.util.UUID;
 
 public record InvoiceWithItemsView(
         UUID invoiceId,
-        UUID entityId,
+        UUID payeeId,
         String invoiceFor,
         String invoiceNo,
         String description,

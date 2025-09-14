@@ -8,12 +8,10 @@ import java.util.List;
 import java.util.UUID;
 
 public record InvoiceRequest(
-        UUID entityId,
-        String entityType,
-        String description,
+        UUID payeeId,
+        String payeeType,
         LocalDate dueDate,
         String currency,
-        Invoice.Status status,
         String notes,
         List<InvoiceItemRequest>lineItems
 ) { }

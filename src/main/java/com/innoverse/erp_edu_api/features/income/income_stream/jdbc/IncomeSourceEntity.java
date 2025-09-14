@@ -1,6 +1,7 @@
 package com.innoverse.erp_edu_api.features.income.income_stream.jdbc;
 
 import com.innoverse.erp_edu_api.features.income.income_stream.IncomeSource;
+import com.innoverse.erp_edu_api.features.income.income_stream.IncomeSourceType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -32,8 +33,8 @@ public class IncomeSourceEntity {
     @Column("accounting_code")
     private String accountingCode;
 
-    @Column("fee_type_code")
-    private String feeTypeCode;
+    @Column("income_source_type")
+    private String incomeSourceType;
 
     @Column("name")
     private String name;
@@ -91,7 +92,7 @@ public class IncomeSourceEntity {
         return IncomeSourceEntity.builder()
                 .incomeSourceId(domain.getIncomeSourceId())
                 .accountingCode(domain.getAccountingCode())
-                .feeTypeCode(domain.getFeeTypeCode())
+                .incomeSourceType(domain.getIncomeSourceType().name())
                 .name(domain.getName())
                 .description(domain.getDescription())
                 .recurrency(domain.getRecurrency().name())
@@ -111,7 +112,7 @@ public class IncomeSourceEntity {
         return IncomeSource.builder()
                 .incomeSourceId(incomeSourceId)
                 .accountingCode(accountingCode)
-                .feeTypeCode(feeTypeCode)
+                .incomeSourceType(IncomeSourceType.valueOf(incomeSourceType))
                 .name(name)
                 .description(description)
                 .recurrency(IncomeSource.Recurrency.valueOf(recurrency))
@@ -128,7 +129,7 @@ public class IncomeSourceEntity {
     }
 
     public void updateFromDomain(IncomeSource domain) {
-        this.feeTypeCode = domain.getFeeTypeCode();
+        this.incomeSourceType = domain.getIncomeSourceType().name();
         this.name = domain.getName();
         this.description = domain.getDescription();
         this.recurrency = domain.getRecurrency().name();

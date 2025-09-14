@@ -2,7 +2,7 @@
 CREATE TABLE income_sources (
                                 income_source_id UUID PRIMARY KEY DEFAULT gen_random_uuid(), -- Changed from 'id'
                                 accounting_code VARCHAR(50) NOT NULL UNIQUE,
-                                fee_type_code VARCHAR(50) NOT NULL,
+                                income_source_type VARCHAR(100) NOT NULL,
                                 name VARCHAR(255) NOT NULL,
                                 description TEXT,
                                 recurrency VARCHAR(50) NOT NULL, -- Changed to match enum
@@ -24,6 +24,6 @@ CREATE TABLE income_sources (
 -- Updated indexes for income_sources
 CREATE INDEX idx_income_sources_active ON income_sources(is_active);
 CREATE INDEX idx_income_sources_currency ON income_sources(currency);
-CREATE INDEX idx_income_sources_fee_type ON income_sources(fee_type_code);
+CREATE INDEX idx_income_sources_fee_type ON income_sources(income_source_type);
 CREATE INDEX idx_income_sources_effective ON income_sources(effective_from, effective_to);
 CREATE INDEX idx_income_sources_active_effective ON income_sources(is_active, effective_from, effective_to);

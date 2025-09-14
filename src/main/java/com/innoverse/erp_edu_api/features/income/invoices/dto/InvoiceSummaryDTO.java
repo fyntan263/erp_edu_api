@@ -4,8 +4,8 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 public record InvoiceSummaryDTO(
-        UUID entityId,
-        String entityType,
+        UUID payeeId,
+        String payeeType,
         BigDecimal totalInvoiced,
         BigDecimal totalPaid,
         BigDecimal totalOutstanding,

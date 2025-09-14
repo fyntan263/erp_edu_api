@@ -14,8 +14,8 @@ public class InvoiceItemRepositoryAdapter implements InvoiceItemRepository {
     private final InvoiceItemJdbcRepository jdbcRepository;
 
     @Override
-    public InvoiceItem save(InvoiceItem item) {
-        InvoiceItemEntity entity = InvoiceItemEntity.fromDomain(item);
+    public InvoiceItem save(UUID invoiceId, InvoiceItem item) {
+        InvoiceItemEntity entity = InvoiceItemEntity.fromDomain(invoiceId, item);
         InvoiceItemEntity savedEntity = jdbcRepository.save(entity);
         return savedEntity.toDomain();
     }
